@@ -1,0 +1,41 @@
+#canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+#topbar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	text-align: center;
+	padding: 7px;
+}
+
+#topbar .progress {
+	width: 70px;
+	margin: 0 2px;
+	display: inline-block;
+}
+/*
+#topbar .progress-bar {
+	width: 100%;
+}
+*/
+#left {
+	position: absolute;
+	left: 0;
+}
+
+#right {
+	position: absolute;
+	right: 0;
+}
+
+.flip {
+	-moz-transform: scaleX(-1);
+	-webkit-transform: scaleX(-1);
+	-o-transform: scaleX(-1);
+	transform: scaleX(-1);
+}

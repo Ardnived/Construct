@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<head>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/ocanvas/2.6.0/ocanvas.min.js"></script>
+	<!--<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>-->
+	
+	<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="/resources/style.css">
+</head>
+<body>
+	<canvas id="canvas" width="1260" height="600" oncontextmenu="return false;">
+		Your browser does not support the canvas element.
+	</canvas>
+	<div id="topbar">
+		<div class="progress progress-striped active flip"><div id="left-t3" class="progress-bar progress-bar-info"> </div></div>
+		<div class="progress progress-striped active flip"><div id="left-t2" class="progress-bar progress-bar-info"> </div></div>
+		<div class="progress progress-striped active flip"><div id="left-t1" class="progress-bar progress-bar-info"> </div></div>
+		<strong id="roundcounter">Round 0</strong>
+		<div class="progress progress-striped active"><div id="right-t1" class="progress-bar progress-bar-info"> </div></div>
+		<div class="progress progress-striped active"><div id="right-t2" class="progress-bar progress-bar-info"> </div></div>
+		<div class="progress progress-striped active"><div id="right-t3" class="progress-bar progress-bar-info"> </div></div>
+	</div>
+	<div id="left">
+		<h1>Player 1</h1>
+	</div>
+	<div id="right">
+		<h1>Player 2</h1>
+	</div>
+		
+	<script src="/data/action.js"></script>
+	<script src="/data/perk.js"></script>
+	<script src="/data/struct.js"></script>
+	<script src="/data/misc.js"></script>
+	<script src="/shared/handshake.js"></script>
+	<script src="/client/tile.js"></script>
+	<script src="/client/button.js"></script>
+	<script src="/client/players.js"></script>
+	<script src="/client/board.js"></script>
+	<script src="/client/ui.js"></script>
+	<script src="/client/connect.js"></script>
+	<script src="/client/init.js"></script>
+</body>
