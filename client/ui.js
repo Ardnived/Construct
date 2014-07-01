@@ -16,7 +16,7 @@ var UI = {
 	},
 	
 	create_button: function(data) {
-		return new Button(60, 60, "../img/source.png", "../img/source.png", data);
+		return new Button(60, 60, "../resources/img/source.png", "../resources/img/source.png", data);
 	},
 	
 	resize_canvas: function() {
@@ -83,7 +83,7 @@ var UI = {
 				x: 100, y: 200,
 				width: 205, height: 205,
 				origin: { x: "center", y: "center" },
-				image: "../img/radial.png",
+				image: "../resources/img/radial.png",
 				pointerEvents: false,
 			});
 			
@@ -116,7 +116,7 @@ var UI = {
 					x: -(i * 64), y: -Math.sqrt(5625 - Math.pow(i * 32, 2)) + i*48,
 					width: 32, height: 32,
 					origin: { x: "center", y: "center" },
-					image: "../img/"+options.actions[i].image,
+					image: "../resources/img/"+options.actions[i].image,
 					join: "round"
 				});
 				

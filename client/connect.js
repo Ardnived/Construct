@@ -31,52 +31,33 @@ var server = {
 		switch (update.type) {
 			case UpdateType.tile:
 				if (update.has('highlight')) {
-					var tile = Board.get(update.q, update.r);
+					var tile = board.get(update.q, update.r);
 					tile.highlight = update.highlight;
 					tile.refresh();
 				}
 				
 				if (update.has('struct')) {
-					Board.get(update.q, update.r).set_image(Data.nodes.get(update.struct).image);
+					board.tile.get(update.q, update.r).set_image(Data.nodes.get(update.struct).image);
 				}
 				
 				if (update.has('image')) {
-					Board.get(update.q, update.r).set_image(update.image);
-				}
-				
-				if (update.has('connections')) {
-					var directions = update.connections.get_data();
-					
-					for (var i in directions) {
-						Board.get(update.q, update.r).connect(Directions.get(directions[i]));
-					}
+					board.tile.get(update.q, update.r).set_image(update.image);
 				}
 				
 				break;
 			case UpdateType.edge:
-				/* TODO: Implement
-				if (update.has('highlight')) {
-					var tile = Board.get(update.q, update.r);
-					tile.highlight = update.highlight;
-					tile.refresh();
+				if (!board.edge.has(update.q[0], update.r[0], update.q[1], update.r[1])) {
+					board.edge.add(update.q[0], update.r[0], update.q[1], update.r[1]);
 				}
 				
-				if (update.has('struct')) {
-					Board.get(update.q, update.r).set_image(Data.nodes.get(update.struct).image);
-				}
-				
-				if (update.has('image')) {
-					Board.get(update.q, update.r).set_image(update.image);
-				}
-				
-				if (update.has('connections')) {
-					var directions = update.connections.get_data();
-					
-					for (var i in directions) {
-						Board.get(update.q, update.r).connect(Directions.get(directions[i]));
+				if (update.has('player')) {
+					if (players.self == update.player) {
+						board.edge.get(update.q[0], update.r[0], update.q[1], update.r[1]).set_owner(players.left);
+					} else {
+						board.edge.get(update.q[0], update.r[0], update.q[1], update.r[1]).set_owner(players.right);
 					}
 				}
-				*/
+				
 				break;
 			case UpdateType.player:
 				if (update.has('turn')) {

@@ -1,6 +1,7 @@
 var server = require("./server/connect");
 var game = require("./server/game");
 var debug = require("./server/debug");
+var hs = require("./shared/handshake");
 
 // Initialize the server.
 game.create();

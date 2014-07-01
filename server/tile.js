@@ -1,4 +1,4 @@
-var board = require("../server/board");
+var board = require("../shared/board");
 
 exports.instance = function(q, r) {
 	this.q = q;

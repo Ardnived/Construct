@@ -1,4 +1,4 @@
-Directions = {
+directions = {
 	north: {
 		id: 'n',
 		offset: {q: +0, r: -1},
@@ -33,10 +33,20 @@ Directions = {
 	keys: ["north", "northwest", "northeast", "south", "southwest", "southeast"],
 	
 	get: function(id) {
-		for (var name in Directions) {
-			var direction = Directions[name];
+		for (var name in directions) {
+			var direction = directions[name];
 			
 			if (direction.id == id) {
+				return direction;
+			}
+		}
+	},
+	
+	find: function(q, r) {
+		for (var name in directions) {
+			var direction = directions[name];
+			
+			if (direction.offset.q == q && direction.offset.r == r) {
 				return direction;
 			}
 		}
@@ -45,5 +55,5 @@ Directions = {
 
 // Export data for a nodejs module.
 if (typeof exports !== 'undefined') {
-	exports.directions = Directions;
+	exports.directions = directions;
 }

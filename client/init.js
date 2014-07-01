@@ -14,11 +14,11 @@ oCanvas.domReady(function() {
 			var q = qN;
 			var r = rN - Math.floor(q/2);
 			
-			Board.add(q, r);
+			board.tile.add(q, r);
 		}
 	}
 	
-	Board.get(2, 3).set_image("icon_21532.png");
+	board.tile.get(2, 3).set_image("icon_21532.png");
 });
 
 server.init();

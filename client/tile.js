@@ -1,7 +1,3 @@
-var HEX_SIZE = 30;
-var BOARD_OFFSET_X = (canvas.width - (12/2 * 3 * HEX_SIZE)) / 2;
-var BOARD_OFFSET_Y = 60;
-
 var tile = {
 	_mouseenter: function(event) {
 		var tile = this.owner;
@@ -51,10 +47,10 @@ var tile = {
 tile.instance = function(q, r) {
 	this.q = q;
 	this.r = r;
-	this.width = 1.5 * HEX_SIZE;
-	this.height = Math.sqrt(3) * HEX_SIZE;
-	this.x = BOARD_OFFSET_X + q * this.width;
-	this.y = BOARD_OFFSET_Y + (r + q/2) * this.height;
+	this.width = board.tile.width;
+	this.height = board.tile.height;
+	this.x = board.tile.get_x(q, r);
+	this.y = board.tile.get_y(q, r);
 	
 	this.hover = false;
 	this.selected = false;
@@ -64,7 +60,7 @@ tile.instance = function(q, r) {
 		x: this.x, y: this.y,
 		origin: { x: "center", y: "center" },
 		sides: 6,
-		radius: HEX_SIZE,
+		radius: board.tile.size,
 		stroke: "1px #AAF"
 	});
 	
@@ -73,6 +69,8 @@ tile.instance = function(q, r) {
 	this._hexagon.bind("mouseleave", tile._mouseleave);
 	this._hexagon.bind("mousedown", tile._mousedown);
 	this._hexagon.bind("click tap", tile._mouseclick);
+	
+	this.show();
 	
 	this._connection = {};
 };
@@ -94,26 +92,6 @@ tile.instance.prototype.destroy = function() {
 	delete this._image;
 };
 
-tile.instance.prototype.connect = function(direction, bool) {
-	if (bool == null) bool = true;
-	
-	if (bool) {
-		var size = 1.7 * HEX_SIZE / 2;
-		
-		this._connection[direction.id] = canvas.display.line({
-			start: { x: 0, y: 0 },
-			end: { x: size * Math.cos(direction.angle), y: size * Math.sin(direction.angle) },
-			stroke: "1px #0AA"
-		});
-		console.log("connect", direction);
-		
-		this._hexagon.addChild(this._connection[direction.id]);
-	} else {
-		this._hexagon.removeChild(this._connection[direction.id]);
-		delete this._connection[direction.id];
-	}
-};
-
 tile.instance.prototype.set_image = function(path) {
 	if (this._image != undefined) {
 		this._hexagon.removeChild(this._image);
@@ -123,9 +101,9 @@ tile.instance.prototype.set_image = function(path) {
 	if (path != null) {
 		this._image = canvas.display.image({
 			x: 0, y: 0,
-			width: HEX_SIZE, height: HEX_SIZE,
+			width: board.tile.size, height: board.tile.size,
 			origin: { x: "center", y: "center" },
-			image: "../img/"+path,
+			image: "../resources/img/"+path,
 			pointerEvents: false,
 		});
 		

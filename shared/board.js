@@ -5,6 +5,8 @@ if (typeof exports !== 'undefined') {
 	var directions = require("../data/misc").directions;
 }
 
+var board = {};
+
 board.tile = {
 	// ==================== PUBLIC ==================== //
 	add: function(q, r) {
@@ -63,6 +65,14 @@ board.tile = {
 		}
 		
 		return results;
+	},
+	
+	get_x: function(q, r) {
+		return board.offset_x + (q * this.width);
+	},
+	
+	get_y: function(q, r) {
+		return board.offset_y + (r + q/2) * this.height;
 	},
 	
 	
@@ -125,6 +135,21 @@ board.edge = {
 		return low_q+","+low_r+"/"+high_q+","+high_r;
 	}
 };
+
+// =========== DEFINE CONSTANTS =========== //
+if (typeof exports === 'undefined') {
+	//TODO: The above condition is a hack.
+	board.tile.size = 30;
+	board.tile.width = 1.5 * board.tile.size;
+	board.tile.height = Math.sqrt(3) * board.tile.size;
+	
+	board.offset_x = (canvas.width - (12/2 * 3 * board.tile.size)) / 2;
+	board.offset_y = 60;
+	board.width = 0;
+	board.height = 0;
+}
+
+
 
 // Export data for a nodejs module.
 if (typeof exports !== 'undefined') {

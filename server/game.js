@@ -1,4 +1,4 @@
-var board = require("../server/board");
+var board = require("../shared/board");
 var logic = require("../server/logic");
 var hs = require("../shared/handshake");
 var actions = require("../data/action");
@@ -109,7 +109,6 @@ exports.on_refresh = function(data) {
 	}
 	
 	// Add all the edge data.
-	console.log(edges);
 	for (var i in edges) {
 		var edge = edges[i];
 		
@@ -235,14 +234,32 @@ function on_request_build(board, request, socket) {
 };
 
 function _check_round_end() {
+	/*
 	for (var index in players) {
 		if (players[index].turn < MAX_TURN) {
 			// At least one player has a turn remaining. Terminate.
 			return;
 		}
 	}
+	*/
+	debug.game("check round end");
+	var reply = [];
+	var edges = logic.send_wave(board);
+	debug.game(edges);
 	
+	for (var i in edges) {
+		update = new hs.request();
+		update.type = hs.update_type.edge;
+		update.q = [edges[i].q1, edges[i].q2];
+		update.r = [edges[i].r1, edges[i].r2];
+		update.player = 0;
+		
+		// Add to our reply.
+		reply.push(update.get_data());
+	}
 	
+	// Send a game update to all players in the game.
+  	server.io.to("game").emit(hs.message_type.update, reply);
 }
 
 /**

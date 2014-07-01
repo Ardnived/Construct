@@ -1,5 +1,5 @@
 var players = {
-	self: null, // The id of this client, if it has one.
+	self: null, // The player index of this client, if it has one. Can be 0 or 1.
 	left: null,
 	right: null,
 	

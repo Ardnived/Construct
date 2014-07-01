@@ -19,6 +19,10 @@ exports.start = function(port, route) {
 	debug.server("Waiting for incoming connections...");
 };
 
+exports.send = function(channel, response) {
+	
+};
+
 
 // ==================== PRIVATE ==================== //
 /**

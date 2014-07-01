@@ -52,7 +52,7 @@ for (var name in Keys) {
 		Object.defineProperty(Request.prototype, name, {
 			get: function() {
 				var result = this._data[Keys[key]];
-				if (result != null && typeof result === 'object') {
+				if (result !== null && result.toString() === '[object Object]') {
 					return new Request(result);
 				} else {
 					return result;
