@@ -1,7 +1,10 @@
+body {
+	text-align: center;
+}
+
 #canvas {
-	position: absolute;
-	top: 0;
-	left: 0;
+	margin-top: 40px;
+	display: inline-block;
 }
 
 #topbar {
@@ -18,17 +21,15 @@
 	margin: 0 2px;
 	display: inline-block;
 }
-/*
-#topbar .progress-bar {
-	width: 100%;
-}
-*/
+
 #left {
+	text-align: left;
 	position: absolute;
 	left: 0;
 }
 
 #right {
+	text-align: right;
 	position: absolute;
 	right: 0;
 }
@@ -38,4 +39,28 @@
 	-webkit-transform: scaleX(-1);
 	-o-transform: scaleX(-1);
 	transform: scaleX(-1);
+}
+
+#tooltip {
+	min-height: 2em;
+}
+
+button {
+	background: white;
+	border: 2px solid lightblue;
+	border-radius: 5px;
+	padding: 3px;
+	margin: 2px;
+	width: 100%;
+	text-align: left;
+	outline: none;
+}
+
+button:hover {
+	background: lightblue;
+	border-color: darkblue;
+}
+
+button img {
+	height: 24px;
 }

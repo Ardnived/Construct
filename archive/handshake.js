@@ -30,7 +30,7 @@ RequestType = {
 
 UpdateType = {
 	meta: 'meta',
-	tile: 'tile',
+	hex: 'hex',
 	edge: 'edge',
 	player: 'player'
 };

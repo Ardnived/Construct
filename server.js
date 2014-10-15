@@ -1,39 +1,33 @@
-var server = require("./server/connect");
+var dispatch = require("./server/dispatch");
 var game = require("./server/game");
 var debug = require("./server/debug");
-var hs = require("./shared/handshake");
+
+/*
+ * nodejs modules:
+ * ws
+ * colors
+ */
 
 // Initialize the server.
 game.create();
-server.start(8888);
+dispatch.start(3000, 8082);
 
 /**
  * When a new user connects, handle it.
  */
-server.io.on('connection', function(socket) {
+dispatch.on('connection', function(client) {
 	debug.game("Received Connection.");
 	
-	socket.join("game");
-	socket.on(hs.message_type.refresh, game.on_refresh);
-	
 	for (var i in game.players) {
-		if (game.players[i].socket == null) {
-			game.players[i].socket = socket;
-			socket.on(hs.message_type.request, game.on_request);
+		if (game.players[i].client == null) {
+			game.players[i].client = client;
+			game.refresh(client);
 			return;
 		}
 	}
 	
 	debug.game("Setting incoming connection to spectator.");
+	game.refresh(client);
 });
 
-/**
- * When a user disconnects, handle it.
- */
-server.io.on('disconnect', function(socket) {
-	var rooms = server.io.manager.roomClients[socket.id];
-	
-	for (var room in rooms) {
-		server.io.to(room).emit(MessageType.rejected, { message: "Another client has disconnected from "+room });
-	}
-});
+dispatch.on('request', game.on_request);

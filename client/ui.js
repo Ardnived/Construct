@@ -1,135 +1,94 @@
 
-var UI = {
+var ui = {
+	_selected: null,
+
 	// ==================== PUBLIC ==================== //
 	init: function() {
 		this.resize_canvas();
-		this.contextmenu.init();
+		//this.contextmenu.init();
 		this.tooltip.init();
+		this.hotkeys.init();
 		
-		canvas.bind("mouseup", function(event) {
+		/*canvas.bind("mouseup", function(event) {
 			if (event.button == 2) {
 				UI.contextmenu.hide();
 			}
 		});
+		*/
 		
 		window.addEventListener('resize', this.resize_canvas, false);
 	},
 	
-	create_button: function(data) {
-		return new Button(60, 60, "../resources/img/source.png", "../resources/img/source.png", data);
-	},
-	
 	resize_canvas: function() {
-	    canvas.width = window.innerWidth;
-	    canvas.height = window.innerHeight;
+	    //canvas.width = window.innerWidth;
+	    //canvas.height = window.innerHeight;
+	},
+
+	select: function(hex) {
+		if (this._selected != null) {
+			var old = this._selected.refresh();
+			this._selected = null;
+			old.refresh();
+		}
+
+		this._selected = hex;
+	},
+
+	selected: function(hex) {
+		if (typeof hex === 'undefined') {
+			return this._selected;
+		} else {
+			return hex === this._selected;
+		}
+	},
+
+	hotkeys: {
+		_keys: {},
+
+		init: function() {
+			this._keys[27] = this.escape; // Escape
+			document.addEventListener("keydown", this.handler, false);
+		},
+
+		handler: function(e) {
+			e = e || window.event;
+			
+			if (typeof ui.hotkeys._keys[e.keyCode] !== 'undefined') {
+				ui.hotkeys._keys[e.keyCode]();
+			}
+		},
+
+		escape: function() {
+			ui.select(null);
+			ui.tooltip.text("");
+		}
 	},
 	
 	tooltip: {
-		_rect: null,
-		_text: null,
+		_element: null,
 		
 		init: function() {
-			this.width = 150;
-			this.height = 100;
-			
-			this._rect = canvas.display.rectangle({
-				x: 100, y: 100,
-				width: this.width, height: this.height,
-				pointerEvents: false,
-				fill: "#079",
-				stroke: "1px #AAF",
-				shadow: "0 0 15px #000",
-				join: "round"
-			});
-			
-			this._text = canvas.display.text({
-				x: 5, y: 5,
-				width: this.width - 10,
-				pointerEvents: false,
-				fill: "#FFF",
-				size: 12,
-				text: ""
-			});
-			this._rect.addChild(this._text);
+			this._element = document.getElementById('tooltip');
 		},
 		
 		show: function() {
-			this._rect.add();
+			this._element.visible = true;
 			return this;
 		},
 		
 		hide: function() {
-			this._rect.remove();
+			this._element.visible = false;
 			return this;
 		},
 		
-		set_text: function(text) {
-			this._text.text = text;
+		text: function(text) {
+			this._element.innerHTML = text;
 		},
 		
 		set: function(options) {
 			this._text.text = options.text;
 			this._rect.x = options.x;
 			this._rect.y = Math.min(options.y, canvas.height - this.height);
-			return this;
-		}
-	},
-	
-	contextmenu: {
-		_background: null,
-		
-		init: function() {
-			this._background = canvas.display.image({
-				x: 100, y: 200,
-				width: 205, height: 205,
-				origin: { x: "center", y: "center" },
-				image: "../resources/img/radial.png",
-				pointerEvents: false,
-			});
-			
-			this._actions = [];
-		},
-		
-		show: function() {
-			this._background.add();
-			return this;
-		},
-		
-		hide: function() {
-			this._background.remove();
-			return this;
-		},
-		
-		reset: function() {
-			for (var i in this._actions) {
-				this._background.remove(this._actions[i]);
-				delete this._actions[i];
-			}
-		},
-		
-		set: function(options) {
-			this._background.x = options.x;
-			this._background.y = options.y;
-			
-			for (var i in options.actions) {
-				var action = canvas.display.image({
-					x: -(i * 64), y: -Math.sqrt(5625 - Math.pow(i * 32, 2)) + i*48,
-					width: 32, height: 32,
-					origin: { x: "center", y: "center" },
-					image: "../resources/img/"+options.actions[i].image,
-					join: "round"
-				});
-				
-				action.tooltip = options.actions[i].tooltip;
-				action.request = options.actions[i].request;
-				action.bind('mouseup', UIUtil._actionclick);
-				action.bind('mouseenter', UIUtil._actionenter);
-				action.bind('mouseleave', UIUtil._actionleave);
-				
-				this._background.addChild(action);
-				this._actions[i] = action;
-			}
-			
 			return this;
 		}
 	},
@@ -170,23 +129,57 @@ var UI = {
 				element.setAttribute("style", "width: 100%");
 			}
 		}
-	}
-};
+	},
 
-var UIUtil = {
-	_actionclick: function(event) {
-		server.request(this.request);
+	actions: {
+		action: function(index, action) {
+			if (typeof action === 'undefined') {
+				return document.getElementById("action-"+index).dataset.action;
+			} else {
+				document.getElementById("action-"+index).dataset.action = action.key;
+				//document.getElementById("action-"+index+"-icon").src = action.icon;
+				document.getElementById("action-"+index+"-title").innerHTML = action.key;
+			}
+		},
+
+		click: function(element) {
+			var key = element.dataset.action;
+			/*var action = null;
+
+			if (typeof data.micro[key] !== 'undefined') {
+				action = data.micro[key];
+			} else if (typeof data.macro[key] !== 'undefined') {
+				action = data.macro[key];
+			}*/
+
+			var msg = new message.instance();
+			msg.type = 'request';
+			msg.data = {
+				type: 'action',
+				action: key,
+				q: ui.selected().q,
+				r: ui.selected().r
+			};
+			
+			msg.send();
+		}
 	},
-	
-	_actionenter: function(event) {
-		UI.tooltip.set_text(this.tooltip);
-		this.stroke = "2px #4D4";
-		canvas.draw.redraw();
-	},
-	
-	_actionleave: function(event) {
-		UI.tooltip.set_text("Choose an action.");
-		this.stroke = "none";
-		canvas.draw.redraw();
+
+	util: {
+		_actionclick: function(event) {
+			this.request.send();
+		},
+		
+		_actionenter: function(event) {
+			UI.tooltip.set_text(this.tooltip);
+			this.stroke = "2px #4D4";
+			canvas.draw.redraw();
+		},
+		
+		_actionleave: function(event) {
+			UI.tooltip.set_text("Choose an action.");
+			this.stroke = "none";
+			canvas.draw.redraw();
+		}
 	}
 };

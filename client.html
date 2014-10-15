@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 
 <head>
-	<script src="/socket.io/socket.io.js"></script>
-	<script src="http://cdnjs.cloudflare.com/ajax/libs/ocanvas/2.6.0/ocanvas.min.js"></script>
-	<!--<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>-->
+	<script type="text/javascript" src="http://cdn.binaryjs.com/0/binary.js"></script>
+	<script type="text/javascript" src="resources/crafty.js"></script>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+	<!--<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>-->
 	
 	<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
 	<link rel="stylesheet" type="text/css" href="/resources/style.css">
 </head>
 <body>
-	<canvas id="canvas" width="1260" height="600" oncontextmenu="return false;">
-		Your browser does not support the canvas element.
-	</canvas>
 	<div id="topbar">
 		<div class="progress progress-striped active flip"><div id="left-t3" class="progress-bar progress-bar-info"> </div></div>
 		<div class="progress progress-striped active flip"><div id="left-t2" class="progress-bar progress-bar-info"> </div></div>
@@ -23,22 +21,44 @@
 	</div>
 	<div id="left">
 		<h1>Player 1</h1>
+		<div id="tooltip">
+
+		</div>
+		<button id="action-0" onclick="return ui.actions.click(this);">
+			<img id="action-0-icon" src="/resources/img/icon_17462.png">
+			<span id="action-0-title">Ability</span>
+		</button>
+		<br>
+		<button id="action-1" onclick="return ui.actions.click(this);">
+			<img id="action-1-icon" src="/resources/img/icon_17283.png">
+			<span id="action-1-title">Ability</span>
+		</button>
+		<br>
+		<button id="action-2" onclick="return ui.actions.click(this);">
+			<img id="action-2-icon" src="/resources/img/icon_17287.png">
+			<span id="action-2-title">Ability</span>
+		</button>
 	</div>
 	<div id="right">
 		<h1>Player 2</h1>
 	</div>
-		
-	<script src="/data/action.js"></script>
-	<script src="/data/perk.js"></script>
-	<script src="/data/struct.js"></script>
-	<script src="/data/misc.js"></script>
-	<script src="/shared/handshake.js"></script>
-	<script src="/client/tile.js"></script>
-	<script src="/client/edge.js"></script>
-	<script src="/client/button.js"></script>
-	<script src="/client/players.js"></script>
-	<script src="/shared/board.js"></script>
-	<script src="/client/ui.js"></script>
-	<script src="/client/connect.js"></script>
-	<script src="/client/init.js"></script>
+	<div id="canvas" oncontextmenu="return false;"></div>
+	
+	<script type="text/javascript" src="/client/debug.js"></script>
+	<script type="text/javascript" src="/shared/utility.js"></script>
+	<script type="text/javascript" src="/shared/hooks.js"></script>
+	<script type="text/javascript" src="/shared/board.js"></script>
+	<script type="text/javascript" src="/library/action.js"></script>
+	<script type="text/javascript" src="/library/perk.js"></script>
+	<script type="text/javascript" src="/library/struct.js"></script>
+	<script type="text/javascript" src="/library/misc.js"></script>
+	<script type="text/javascript" src="/shared/message.js"></script>
+	<script type="text/javascript" src="/client/ui.js"></script>
+	<script type="text/javascript" src="/client/players.js"></script>
+	<script type="text/javascript" src="/client/hex.js"></script>
+	<script type="text/javascript" src="/client/edge.js"></script>
+	<script type="text/javascript" src="/client/dispatch.js"></script>
+	<script type="text/javascript" src="/client/game.js"></script>
+	<script type="text/javascript" src="/client/init.js"></script>
+	<script type="text/javascript" src="/client/canvas.js"></script>
 </body>

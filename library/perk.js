@@ -1,8 +1,8 @@
-if (typeof Data === 'undefined') {
-	var Data = {};
+if (typeof library === 'undefined') {
+	var library = {};
 }
 
-Data.perks = {
+library.perks = {
 	attack_barrier: {
 		
 	},
@@ -22,5 +22,5 @@ Data.perks = {
 
 
 if (typeof exports !== 'undefined') {
-	exports.perks = Data.perks;
+	exports.perks = library.perks;
 }

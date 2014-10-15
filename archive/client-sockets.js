@@ -29,19 +29,19 @@ var server = {
 	
 	_process_update: function(update) {
 		switch (update.type) {
-			case UpdateType.tile:
+			case UpdateType.hex:
 				if (update.has('highlight')) {
-					var tile = board.get(update.q, update.r);
-					tile.highlight = update.highlight;
-					tile.refresh();
+					var hex = board.get(update.q, update.r);
+					hex.highlight = update.highlight;
+					hex.refresh();
 				}
 				
 				if (update.has('struct')) {
-					board.tile.get(update.q, update.r).set_image(Data.nodes.get(update.struct).image);
+					board.hex.get(update.q, update.r).set_image(Data.nodes.get(update.struct).image);
 				}
 				
 				if (update.has('image')) {
-					board.tile.get(update.q, update.r).set_image(update.image);
+					board.hex.get(update.q, update.r).set_image(update.image);
 				}
 				
 				break;

@@ -17,5 +17,5 @@ players["0"] = players.left;
 players["1"] = players.right;
 
 players._type.prototype.set_name = function(name) {
-	this.element.innerHTML = "<h1>"+name+"</h1>";
+	this.element.getElementsByTagName("H1")[0].innerHTML = name;
 };
