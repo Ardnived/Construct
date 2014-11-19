@@ -5,16 +5,8 @@ var ui = {
 	// ==================== PUBLIC ==================== //
 	init: function() {
 		this.resize_canvas();
-		//this.contextmenu.init();
 		this.tooltip.init();
 		this.hotkeys.init();
-		
-		/*canvas.bind("mouseup", function(event) {
-			if (event.button == 2) {
-				UI.contextmenu.hide();
-			}
-		});
-		*/
 		
 		window.addEventListener('resize', this.resize_canvas, false);
 	},
@@ -39,6 +31,58 @@ var ui = {
 			return this._selected;
 		} else {
 			return hex === this._selected;
+		}
+	},
+
+	players: {
+		left: {
+			element: $("#left"),
+			object: function() {
+				var self = board.player.self()
+				if (self != null) {
+					return self;
+				} else {
+					return board.player.get(0);
+				}
+			}
+		},
+		right:{
+			element: $("#right"),
+			object: function() {
+				var self = board.player.self()
+				if (self != null) {
+					return board.player.other(self.id);
+				} else {
+					return board.player.get(1);
+				}
+			}
+		},
+
+		is: function(id, side) {
+			return id === side.object().id;
+		},
+
+		get: function(id) {
+			if (this.left.object().id == id) {
+				return this.left;
+			} else if (this.right.object().id == id) {
+				return this.right;
+			} else {
+				return null;
+			}
+		},
+
+		name: function(id, value) {
+			var element = this.get(id).element;
+			if (element == null) {
+				return null;
+			}
+
+			if (typeof value !== 'undefined') {
+				return element.children(".title").text(value);
+			} else {
+				return element.children(".title").text();
+			}
 		}
 	},
 
@@ -99,31 +143,49 @@ var ui = {
 		},
 		
 		update: function() {
-			var element;
+			debug.game("ui.topbar.update");
+			var element, player;
 			
-			for (var i = 1; i < players.left.turn; i++) {
+			player = board.player.self();
+
+			if (player == null) {
+				player = board.player.get(0);
+			}
+
+			for (var i = 1; i <= board.meta.max_turns; i++) {
 				element = document.getElementById("left-t"+i);
-				element.className = "progress-bar progress-bar-info";
-				element.parentNode.className = "progress flip";
-				element.setAttribute("style", "width: 100%");
+
+				if (i < player.turn) {
+					element.className = "progress-bar progress-bar-info";
+					element.parentNode.className = "progress flip";
+					element.setAttribute("style", "width: 100%");
+				} else {
+					element.setAttribute("style", "");
+				}
 			}
 			
-			if (players.left.inprogress && players.left.turn > 0) {
-				element = document.getElementById("left-t"+players.left.turn);
+			if (player.inprogress) {
+				element = document.getElementById("left-t"+player.turn);
 				element.className = "progress-bar progress-bar-success";
 				element.parentNode.className = "progress progress-striped active flip";
 				element.setAttribute("style", "width: 100%");
 			}
 			
-			for (var i = 1; i < players.right.turn; i++) {
+			player = board.player.get(player.id === 1 ? 0 : 1);
+			for (var i = 1; i <= board.meta.max_turns; i++) {
 				element = document.getElementById("right-t"+i);
-				element.className = "progress-bar progress-bar-info";
-				element.parentNode.className = "progress";
-				element.setAttribute("style", "width: 100%");
+
+				if (i < player.turn) {
+					element.className = "progress-bar progress-bar-info";
+					element.parentNode.className = "progress";
+					element.setAttribute("style", "width: 100%");
+				} else {
+					element.setAttribute("style", "");
+				}
 			}
 			
-			if (players.right.inprogress && players.right.turn > 0) {
-				element = document.getElementById("right-t"+players.right.turn);
+			if (player.inprogress) {
+				element = document.getElementById("right-t"+player.turn);
 				element.className = "progress-bar progress-bar-success";
 				element.parentNode.className = "progress progress-striped active";
 				element.setAttribute("style", "width: 100%");
@@ -162,6 +224,8 @@ var ui = {
 			};
 			
 			msg.send();
+
+			ui.select(null);
 		}
 	},
 

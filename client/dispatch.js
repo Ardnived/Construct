@@ -1,9 +1,9 @@
 var dispatch = {
 	_socket: null,
 	
-	init: function() {
+	init: function(port) {
 		console.log("Connecting to socket.");
-		this._socket = new BinaryClient("ws://"+location.hostname+":8082/");
+		this._socket = new BinaryClient("ws://"+location.hostname+":"+port+"/");
 		this._socket.on('stream', this._on_message);
 		this._socket.on('error', this._on_error);
 		this._socket.on('open', this._on_open);
@@ -34,7 +34,7 @@ var dispatch = {
 	},
 	
 	_on_message: function(stream, meta) {
-		debug.dispatch("Received message", meta);
+		debug.dispatch("Received message", "( metadata:", meta, ")");
 
 		var parts = [];
 		stream.on('data', function(data) {
@@ -43,7 +43,6 @@ var dispatch = {
 	    
 	    stream.on('end', function() {
 	    	var blob = new Blob(parts);
-			debug.dispatch("On Message:", blob);
 			
 			var reader = new FileReader();
 			reader.addEventListener("loadend", function() {
@@ -56,7 +55,7 @@ var dispatch = {
 				if (typeof dispatch["_on_"+msg.type] !== 'undefined') {
 					dispatch["_on_"+msg.type](msg.data);
 				} else {
-					debug.error("No dispatch handler defined for type", msg.type);
+					debug.error("No dispatch handler defined for type:", msg.type);
 				}
 			});
 

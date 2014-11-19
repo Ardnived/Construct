@@ -1,45 +1,57 @@
 var directions = {
 	north: {
-		id: 'n',
+		key: 'north',
 		offset: {q: +0, r: -1},
-		angle: Math.PI / 3 * 4.5 * (180 / Math.PI)
+		angle: Math.PI / 3 * 4.5 * (180 / Math.PI),
+		opposite: 'south',
+		compliment: 'south',
+		mirror: 'south',
 	},
 	northwest: {
-		id: 'nw',
+		key: 'northwest',
 		offset: {q: -1, r: +0},
-		angle: Math.PI / 3 * 3.5 * (180 / Math.PI)
+		angle: Math.PI / 3 * 3.5 * (180 / Math.PI),
+		opposite: 'southeast',
+		compliment: 'southwest',
+		mirror: 'northeast',
 	},
 	northeast: {
-		id: 'ne',
+		key: 'northeast',
 		offset: {q: +1, r: -1},
-		angle: Math.PI / 3 * 5.5 * (180 / Math.PI)
+		angle: Math.PI / 3 * 5.5 * (180 / Math.PI),
+		opposite: 'southwest',
+		compliment: 'southeast',
+		mirror: 'northwest',
 	},
 	south: {
-		id: 's',
+		key: 'south',
 		offset: {q: +0, r: +1},
-		angle: Math.PI / 3 * 1.5 * (180 / Math.PI)
+		angle: Math.PI / 3 * 1.5 * (180 / Math.PI),
+		opposite: 'north',
+		compliment: 'north',
+		mirror: 'north',
 	},
 	southwest: {
-		id: 'sw',
+		key: 'southwest',
 		offset: {q: -1, r: +1},
-		angle: Math.PI / 3 * 2.5 * (180 / Math.PI)
+		angle: Math.PI / 3 * 2.5 * (180 / Math.PI),
+		opposite: 'northeast',
+		compliment: 'northwest',
+		mirror: 'southeast',
 	},
 	southeast: {
-		id: 'se',
+		key: 'southeast',
 		offset: {q: +1, r: +0},
-		angle: Math.PI / 3 * 0.5 * (180 / Math.PI)
+		angle: Math.PI / 3 * 0.5 * (180 / Math.PI),
+		opposite: 'northwest',
+		compliment: 'northeast',
+		mirror: 'southwest',
 	},
 	
 	keys: ["north", "northwest", "northeast", "south", "southwest", "southeast"],
 	
-	get: function(id) {
-		for (var name in directions) {
-			var direction = directions[name];
-			
-			if (direction.id == id) {
-				return direction;
-			}
-		}
+	get: function(key) {
+		return this[key];
 	},
 	
 	find: function(q, r) {

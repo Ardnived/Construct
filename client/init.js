@@ -1,5 +1,5 @@
 
-dispatch.init();
+dispatch.init(3001);
 dispatch.on('update', game.update);
 
 dispatch.on('rejected', function(data) {
@@ -10,11 +10,8 @@ hooks.on('canvas_ready', function() {
 	debug.game("on ready");
 	ui.init();
 	
-	for (var qN = 1; qN < 12; qN++) {
-		for (var rN = 0; rN < 10; rN++) {
-			var q = qN;
-			var r = rN - Math.floor(q/2);
-			
+	for (var q = board.meta.min_q(); q <= board.meta.max_q(); q++) {
+		for (var r = board.meta.min_r(q); r <= board.meta.max_r(q); r++) {
 			board.hex.add(q, r);
 		}
 	}

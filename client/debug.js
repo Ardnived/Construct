@@ -31,6 +31,12 @@ debug.error = function() {
 	console.error.apply(console, params);
 };
 
+debug.temp = function() {
+	var params = ["temp     -"];
+	Array.prototype.push.apply(params, arguments);
+	console.error.apply(console, params);
+};
+
 debug.flow = function() {
 	var params = ["flow     -"];
 	Array.prototype.push.apply(params, arguments);

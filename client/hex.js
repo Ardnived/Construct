@@ -65,6 +65,9 @@ var hex = {
 };
 
 hex.instance = function(q, r) {
+	this.base = abstract_hex.instance;
+	this.base(q, r);
+
 	this.q = q;
 	this.r = r;
 
@@ -92,11 +95,16 @@ hex.instance = function(q, r) {
 		[hit.x + hit.w/2, hit.y], // Right
 		[hit.x + hit.w/4, hit.y + hit.h/2] // Bottom Right
 	]);
-
 	this._entity = Crafty.e("2D, Canvas, Mouse")
 		.attr({x: this.x - this.width, y: this.y - this.height, w: board.hex.scale, h: board.hex.scale})
 		.origin("center")
 		.areaMap(hitbox);
+
+	this._text = Crafty.e("2D, DOM, Text")
+		.attr({x: this._entity.x + 5, y: this._entity.y - 5})
+		.textFont({ weight: 'bold' })
+		.text("")
+		.origin("center");
 
 	this._entity.bind("MouseOver", hex._mouseenter);
 	this._entity.bind("MouseOut", hex._mouseleave);
@@ -105,9 +113,11 @@ hex.instance = function(q, r) {
 
 	this._entity.owner = this;
 	
-	this.image(canvas.image.hex.empty);
+	this.image(canvas.image.hex.empty.neutral);
 	this.show();
 };
+
+hex.instance.prototype = new abstract_hex.instance;
 
 hex.instance.prototype.show = function() {
 	this._entity.visible = true;
@@ -124,6 +134,63 @@ hex.instance.prototype.destroy = function() {
 	
 	delete this._hexagon;
 	delete this._image;
+};
+
+hex.instance.prototype.owner = function(new_owner) {
+	var change = (typeof new_owner !== 'undefined') && (new_owner != this._owner);
+	var result = this.base.prototype.owner.call(this, new_owner);
+	
+	if (change) {
+		var struct = this._struct ? this._struct : 'empty';
+
+		if (ui.players.is(this._owner, ui.players.left)) {
+			this.image(canvas.image.hex[struct].left);
+		} else if (ui.players.is(this._owner, ui.players.right)) {
+			this.image(canvas.image.hex[struct].right);
+		} else {
+			this.image(canvas.image.hex[struct].neutral);
+		}
+
+		this.refresh();
+	}
+	
+	return result;
+}
+
+hex.instance.prototype.charge = function(quantity) {
+	var result = this.base.prototype.owner.call(this, quantity);
+	
+	if (quantity !== 0) {
+		if (this._charge !== 0) {
+			this._text.text(this._charge);
+		} else {
+			this._text.text("");
+		}
+		
+	}
+	
+	return result;
+}
+
+hex.instance.prototype.struct = function(new_struct) {
+	var change = (typeof new_struct !== 'undefined') && (new_struct != this._struct);
+	var result = this.base.prototype.struct.call(this, new_struct);
+	
+	if (change) {
+		var struct = this._struct ? this._struct : 'empty';
+
+		if (ui.players.is(this._owner, ui.players.left)) {
+			this.image(canvas.image.hex[struct].left);
+		} else if (ui.players.is(this._owner, ui.players.right)) {
+			this.image(canvas.image.hex[struct].right);
+		} else {
+			this.image(canvas.image.hex[struct].neutral);
+		}
+
+		this.refresh();
+	}
+
+	return result;
 };
 
 hex.instance.prototype.image = function(image) {
@@ -155,7 +222,15 @@ hex.instance.prototype.refresh = function() {
 		this._entity.removeComponent(this._image.normal);
 		this._entity.addComponent(this._image.hover);
 
-		ui.tooltip.text("This hex is located at "+this.q+", "+this.r);
+		var tip = "This hex is located at "+this.q+", "+this.r+".";
+
+		if (this.struct() != null) {
+			tip += "<br>It contains a "+this.struct()+".";
+		}
+
+		tip += "<br>It has charge "+this.charge()+".";
+
+		ui.tooltip.text(tip);
 	} else {
 		this._entity.removeComponent(this._image.hover);
 		this._entity.addComponent(this._image.normal);

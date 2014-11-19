@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 
 <head>
-	<script type="text/javascript" src="http://cdn.binaryjs.com/0/binary.js"></script>
-	<script type="text/javascript" src="resources/crafty.js"></script>
-	<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-	<!--<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>-->
-	
-	<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	<script type="text/javascript" src="resources/crafty-0.6.2.js"></script>
 	<link rel="stylesheet" type="text/css" href="/resources/style.css">
+
+	<!-- Fallbacks -->
+	<script type="text/javascript" src="resources/binary.js"></script>
+	<script type="text/javascript" src="resources/jquery.js"></script>
+	<link rel="stylesheet" type="text/css" href="/resources/bootstrap.css">
+	<!-- /Fallbacks -->
+
+	<!-- Remote --
+	<script type="text/javascript" src="http://cdn.binaryjs.com/0/binary.js"></script>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	<!-- /Remote -->
 </head>
 <body>
 	<div id="topbar">
@@ -20,7 +27,7 @@
 		<div class="progress progress-striped active"><div id="right-t3" class="progress-bar progress-bar-info"> </div></div>
 	</div>
 	<div id="left">
-		<h1>Player 1</h1>
+		<h1 class="title">Player 1</h1>
 		<div id="tooltip">
 
 		</div>
@@ -40,7 +47,7 @@
 		</button>
 	</div>
 	<div id="right">
-		<h1>Player 2</h1>
+		<h1 class="title">Player 2</h1>
 	</div>
 	<div id="canvas" oncontextmenu="return false;"></div>
 	
@@ -54,10 +61,12 @@
 	<script type="text/javascript" src="/library/misc.js"></script>
 	<script type="text/javascript" src="/shared/message.js"></script>
 	<script type="text/javascript" src="/client/ui.js"></script>
-	<script type="text/javascript" src="/client/players.js"></script>
+	<script type="text/javascript" src="/shared/abstract_hex.js"></script>
 	<script type="text/javascript" src="/client/hex.js"></script>
+	<script type="text/javascript" src="/shared/abstract_edge.js"></script>
 	<script type="text/javascript" src="/client/edge.js"></script>
 	<script type="text/javascript" src="/client/dispatch.js"></script>
+	<script type="text/javascript" src="/shared/logic.js"></script>
 	<script type="text/javascript" src="/client/game.js"></script>
 	<script type="text/javascript" src="/client/init.js"></script>
 	<script type="text/javascript" src="/client/canvas.js"></script>

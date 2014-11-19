@@ -1,7 +1,10 @@
 if ( typeof exports !== 'undefined') {
 	var debug = require("../server/debug");
 	var dispatch = require("../server/dispatch");
-	var library = require("../library/struct")
+	var library = {
+		nodes: require("../library/struct").nodes,
+		micro: require("../library/action").micro,
+	};
 }
 
 Messages = {
@@ -13,13 +16,13 @@ Messages = {
 /**
  * This file creates and parses communications between the server and client.
  */
-Keys = ['type', 'message', 'rid', 'image', 'q', 'r', 'struct', 'player', 'inprogress', 'turn', 'action'];
+Keys = ['type', 'message', 'rid', 'image', 'q', 'r', 'struct', 'player', 'inprogress', 'turn', 'action', 'charge'];
 
 Values = {
-	type : ['action', 'click', 'cancel', 'meta', 'hex', 'edge', 'player'],
-	action : ['build'], //TODO: Fix this.
-	message : Object.keys(Messages),
-	struct : Object.keys(library.nodes)
+	type: ['action', 'meta', 'hex', 'edge', 'player'],
+	action: Object.keys(library.micro),
+	message: Object.keys(Messages),
+	struct: Object.keys(library.nodes)
 };
 
 Types = ['default', 'request', 'update', 'confirm', 'rejected', 'chat'];
@@ -208,6 +211,7 @@ message.instance.prototype.decode = function() {
 				} else {
 					jsontree[depth - 1].push(jsontree[depth]);
 				}
+				
 				delete jsontree[depth];
 				depth--;
 				debug.parse("close to depth", depth);
@@ -229,6 +233,7 @@ message.instance.prototype.decode = function() {
 						}
 
 						jsontree[depth][key] = value;
+						key = null;
 						mode = 'value';
 						debug.parse("mode: value");
 						break;
@@ -238,10 +243,10 @@ message.instance.prototype.decode = function() {
 				}
 		}
 
-		debug.parse(jsontree);
+		debug.parse("->", jsontree);
 	}
 
-	debug.parse(jsontree);
+	debug.parse("-->", jsontree);
 	this.data = jsontree[0];
 };
 
@@ -268,7 +273,7 @@ message.instance.prototype.read = function(index, dictionary) {
 	if ( typeof result === 'undefined') {
 		debug.error("Unrecognized value on decode:", index, "Searched: [" + dictionary + "]");
 	} else {
-		debug.parse("Returning ", index, " = ", result);
+		debug.parse("Returning", index, "=", result);
 		return result;
 	}
 };
@@ -281,13 +286,17 @@ if ( typeof exports !== 'undefined') {
 }
 
 message.instance.prototype.send = function() {
-	debug.dispatch("Sending", this.type, this.data);
 	this.encode();
+	debug.dispatch("Sending", this.type, this.data);
 	dispatch.send(this.binary, this.length, this.targets);
+
+	var msg = new message.instance();
+	msg.binary = this.binary;
+	msg.decode();
 };
 
 // Export data for a nodejs module.
-if ( typeof exports !== 'undefined') {
+if (typeof module !== 'undefined') {
 	exports.instance = message.instance;
 	exports.send = message.send;
 	exports.decode = message.decode;

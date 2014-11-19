@@ -26,19 +26,36 @@ library.gates = {
 };
 
 library.nodes = {
-	mainframe : {// MAINFRAME
-		target : board.hex.type.empty_hex,
-		image : "icon_17287.png",
-		charge : function(hex, quantity) {
-			hex.charge += quantity;
+	mainframe: { // MAINFRAME
+		target: board.hex.type.empty_hex,
+		init: function(hex) {},
+		charge: function(hex, quantity, player) {
+			if (hex.owner() === player) {
+				hex.charge(quantity);
+			} else {
+				var remainder = Math.max(quantity - hex.charge(), 0);
+				hex.charge(-quantity);
+
+				if (remainder > 0) {
+					hex.owner(player);
+					hex.charge(remainder);
+				} else {
+					return 0;
+				}
+			}
+			
+			return hex.charge();
 		},
-		discharge : function(hex, quantity) {
-			var edges = board.hex.edges(hex.q, hex.r);
+		discharge: function(hex, quantity, player) {
+			if (hex.charge() < 4) {
+				quantity = Math.floor(quantity/2.0);
+			}
+
+			return hex.charge(-quantity, 1);
 		}
 	},
 	scrambler : {
 		target : board.hex.type.empty_hex,
-		image : "icon_21537.png",
 		// TODO: Implement
 	},
 	prism : {

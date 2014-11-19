@@ -1,52 +1,97 @@
 // Import data for a nodejs module.
-if (typeof exports !== 'undefined') {
-	var hex = require("../server/hex");
-	var edge = require("../server/edge");
+if (typeof module !== 'undefined') {
+	var hex = require("../shared/abstract_hex");
+	var edge = require("../shared/abstract_edge");
 	var directions = require("../library/misc").directions;
 	var hooks = require("../shared/hooks");
 	var utility = require("../shared/utility");
+	var debug = require("../server/debug");
 }
 
-var TURNS_IN_A_ROUND = 3;
+var board = {};
 
-var board = {
-	round_length: TURNS_IN_A_ROUND,
-	
+board.meta = {
+	max_turns: 3,
+	round_length: 3,
+	width: 12,
+	height: 8,
+	min_q: function() { return 1; },
+	max_q: function() { return this.width - 1; },
+	min_r: function(q) { return -Math.floor(q / 2); },
+	max_r: function(q) { return (this.height + ((q + 1) % 2)) - Math.floor(q / 2); },
+	min: { q: Number.POSITIVE_INFINITY, r: Number.POSITIVE_INFINITY },
+	max: { q: Number.NEGATIVE_INFINITY, r: Number.NEGATIVE_INFINITY },
+
 	new_round: function () {
-		this.round_length = TURNS_IN_A_ROUND;
+		this.round_length = this.max_turns;
 	}
 };
 
 board.player = {
 	// ==================== PUBLIC ==================== //
-	add: function(name) {
-		this._players[this._increment](name);
-		this._increment++;
-		return this._increment;
+	set: function(id, data) {
+		if (!this.has(id)) {
+			this._players[id] = {
+				id: id,
+				turn: 1,
+				inprogress: 1
+			}
+		}
+
+		if (data != null) {
+			for (var key in data) {
+				this._players[id][key] = data[key];
+			}
+		}
+
+		return this._players[id];
 	},
 	
 	get: function(id) {
-		return this._players[id];
+		if (id == null) {
+			return null;
+		} else if (this.has(id)) {
+			return this._players[id];
+		} else {
+			return this.set(id);
+		}
 	},
 	
 	remove: function(id) {
 		delete this._players[id];
 	},
+
+	has: function(id) {
+		return id in this._players;
+	},
 	
 	all: function() {
 		return this._players;
 	},
-	
-	opponent: function(id) {
-		if (id == 0) {
-			return 1;
-		} else {
-			return 0;
+
+	is_opponent: function(id) {
+		return id != null && !this.is_self(id);
+	},
+
+	is_self: function(id) {
+		return id == this._self;
+	},
+
+	self: function(id) {
+		if (typeof id !== 'undefined') {
+			this._self = id;
 		}
+
+		return this.get(this._self);
+	},
+
+	other: function(id) {
+		return this.get(id === 1 ? 0 : 1);
 	},
 	
 	
 	// ==================== PRIVATE ==================== //
+	_self: null, // Only makes sense on the client-side.
 	_players: {},
 	_increment: 0
 };
@@ -56,6 +101,12 @@ board.hex = {
 	add: function(q, r) {
 		var instance = new hex.instance(q, r);
 		this._grid[this._key(q, r)] = instance;
+		
+		if (q > board.meta.max.q) board.meta.max.q = q;
+		if (q < board.meta.min.q) board.meta.min.q = q;
+		if (r > board.meta.max.r) board.meta.max.r = r;
+		if (r < board.meta.min.r) board.meta.min.r = r;
+		
 		return instance;
 	},
 	
@@ -117,11 +168,11 @@ board.hex = {
 	},
 	
 	get_x: function(q, r) {
-		return board.offset_x + (q * this.width);
+		return board.meta.offset.x + (q * this.width);
 	},
 	
 	get_y: function(q, r) {
-		return board.offset_y + (r + q/2) * this.height;
+		return board.meta.offset.y + (r + q/2) * this.height;
 	},
 	
 	
@@ -198,41 +249,30 @@ board.edge = {
 };
 
 board.hex.type = {
-	empty_tile: function(data) {
-		return this.empty_hex(data) || this.empty_edge(data);
+	hex: function(data, player) {
+		return data.hasOwnProperty('q') && data.hasOwnProperty('r')
+			&& board.hex.get(data.q, data.r) != null;
 	},
-	empty_hex: function(data) {
-		return data.hasOwnProperty(q) && data.hasOwnProperty(r)
-			&& board.hex.get(q, r).struct == null;
+	empty_hex: function(data, player) {
+		return board.hex.type.hex(data, player)
+			&& board.hex.get(data.q, data.r).struct() == null;
 	},
-	empty_edge: function(data) {
-		return data.hasOwnProperty(q1) && data.hasOwnProperty(r1)
-			&& data.hasOwnProperty(q2) && data.hasOwnProperty(r2)
-			&& board.hex.get(q1, r1, q2, r2).struct == null;
+	struct: function(data, player) {
+		return board.hex.type.hex(data, player)
+			&& board.hex.get(data.q, data.r).struct() != null;
 	},
-	tile: function(data) {
-		return this.hex(data) || this.edge(data);
+	owned_hex: function(data, player) {
+		return board.hex.type.hex(data, player)
+			&& board.hex.get(data.q, data.r).owner() == player;
 	},
-	hex: function(data) {
-		return data.hasOwnProperty(q) && data.hasOwnProperty(r)
-			&& board.hex.get(q, r) != null;
+	owned_empty_hex: function(data, player) {
+		return board.hex.type.empty_hex(data, player)
+			&& board.hex.get(data.q, data.r).owner() == player;
 	},
-	edge: function(data) {
-		return data.hasOwnProperty(q1) && data.hasOwnProperty(r1)
-			&& data.hasOwnProperty(q2) && data.hasOwnProperty(r2)
-			&& board.hex.get(q1, r1, q2, r2) != null;
+	owned_struct: function(data, player) {
+		return board.hex.type.struct(data, player)
+			&& board.hex.get(data.q, data.r).owner() == player;
 	},
-	struct: function(data) {
-		return this.node(data) || this.gate(data);
-	},
-	node: function(data) {
-		return this.hex(data)
-			&& board.hex.get(q, r).struct != null;
-	},
-	gate: function(data) {
-		return this.edge(data)
-			&& board.hex.get(q1, r1, q2, r2).struct != null;
-	}
 };
 
 // =========== DEFINE CONSTANTS =========== //
@@ -244,19 +284,21 @@ hooks.on('init_board', function() {
 
 	board.edge.offset = {
 		x: board.hex.width - 5,
-		y: board.hex.height - 15
+		y: board.hex.height - 30,
 	};
 	
-	board.offset_x = (canvas.width - (12/2 * 3 * board.hex.size)) / 2;
-	board.offset_y = 60;
-	board.width = 0;
-	board.height = 0;
+	board.meta.offset = {
+		x: (canvas.width - (12/2 * 3 * board.hex.size)) / 2,
+		y: 60
+	};
 });
 
 
 
 // Export data for a nodejs module.
-if (typeof exports !== 'undefined') {
+if (typeof module !== 'undefined') {
 	exports.hex = board.hex;
 	exports.edge = board.edge;
+	exports.player = board.player;
+	exports.meta = board.meta;
 }

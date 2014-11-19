@@ -4,17 +4,18 @@ var debug = require("./server/debug");
 var msg = new message.instance();
 msg.type = 'chat';
 
-/*
-msg.data = [{
-	q: [0, 1],
-	r: 2,
-	type: 'action',
-	struct: 5,
-	message: '400'
-}];
-*/
 
-msg.data = [{type: "action", q: 6, r: 1, struct: undefined}];
+msg.data = [{
+	q: 1,
+	r: 2,
+	type: 'hex',
+	player: 0
+}, {
+	type: 'hex',
+	q: 6,
+	r: 3,
+	player: 0
+}];
 
 msg.encode();
 debug.dispatch('Raw\n', msg.binary.buffer);
@@ -22,4 +23,4 @@ debug.dispatch('Raw\n', msg.binary.buffer);
 var decoder = new message.instance();
 decoder.binary = msg.binary;
 decoder.decode();
-debug.dispatch('JSON\n', decoder.data);
+debug.dispatch("Message Integrity:", (msg.data == decoder.data) ? "Good" : "Bad", "->\n", decoder.data);

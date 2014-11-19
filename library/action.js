@@ -15,15 +15,15 @@ library.micro = {
 		}
 	},
 	encode: { // Hide a single hex.
-		targets: [board.hex.type.hex],
+		targets: [board.hex.type.owned_hex],
 		apply: function(target) {
 			target.obscure = false;
 		}
 	},
 	reformat: { // Remove existing node or gate
-		targets: [board.hex.type.struct],
+		targets: [board.hex.type.owned_struct],
 		apply: function(target) {
-			target.struct = null;
+			target.struct(null);
 		}
 	},
 	empower: { // Charge a node or gate.
@@ -33,14 +33,14 @@ library.micro = {
 		}
 	},
 	reorient: { // Rotate a hex's edges. Clockwise or Counter-clockwise.
-		targets: [board.hex.type.hex],
+		targets: [board.hex.type.owned_hex],
 		apply: function(target) {
 			board.hex.edges();
 			// TODO: Do something.
 		}
 	},
 	transfer: { // Swap all charge between two structs to another.
-		targets: [board.hex.type.hex, board.hex.type.hex],
+		targets: [board.hex.type.owned_struct, board.hex.type.owned_struct],
 		apply: function(source, target) {
 			var charge = source.charge;
 			source.charge = target.charge;
@@ -48,9 +48,9 @@ library.micro = {
 		}
 	},
 	build: { // Build a structure.
-		targets: [board.hex.type.empty_hex],
+		targets: [board.hex.type.owned_empty_hex],
 		apply: function(target, struct) {
-			target.struct = struct;
+			target.struct(struct);
 		}
 	}
 };
@@ -65,14 +65,14 @@ library.macro = {
 		apply: function() {
 			var hexes = board.hex.all();
 			for (var key in hexes) {
-				if (hexes[key].struct == null) {
+				if (hexes[key].struct() == null) {
 					hexes[key].charge++;
 				}
 			}
 			
 			var edges = board.edge.all();
 			for (var key in edges) {
-				if (edges[key].struct == null) {
+				if (edges[key].struct() == null) {
 					edges[key].charge++;
 				}
 			}

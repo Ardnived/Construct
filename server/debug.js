@@ -30,6 +30,13 @@ exports.error = function() {
 	console.log.apply(console, params);
 };
 
+exports.temp = function() {
+	var params = [":temp     -".grey];
+	Array.prototype.push.apply(params, arguments);
+	params.push("".white);
+	console.log.apply(console, params);
+};
+
 exports.flow = function() {
 	var params = [":flow     -".blue];
 	Array.prototype.push.apply(params, arguments);

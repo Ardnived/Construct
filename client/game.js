@@ -1,10 +1,8 @@
 var game = {
 	update: function(data) {
-		debug.game("Received Update:", data);
-		
 		if (data instanceof Array) {
 			for (var i in data) {
-				debug.flow('update_'+data[i].type+":", data[i]);
+				//debug.flow('update_'+data[i].type+":", data[i]);
 				game['update_'+data[i].type](data[i]);
 			}
 			
@@ -14,18 +12,27 @@ var game = {
 	},
 	
 	update_hex: function(data) {
+		var hex = board.hex.get(data.q, data.r);
+
 		if ('highlight' in data) {
-			var hex = board.get(data.q, data.r);
 			hex.highlight = data.highlight;
 			hex.refresh();
 		}
 		
+		if ('player' in data) {
+			hex.owner(data.player);
+		}
+		
 		if ('struct' in data) {
-			board.hex.get(data.q, data.r).image(canvas.image.hex[data.struct]);
+			hex.struct(data.struct);
+		}
+		
+		if ('charge' in data) {
+			hex._charge = data.charge;
 		}
 		
 		if ('image' in data) {
-			board.hex.get(data.q, data.r).image(data.image);
+			hex.image(data.image);
 		}
 	},
 	
@@ -35,38 +42,36 @@ var game = {
 		}
 		
 		if ('player' in data) {
-			if (players.self == data.player) {
-				board.edge.get(data.q[0], data.r[0], data.q[1], data.r[1]).set_owner(players.left);
-			} else {
-				board.edge.get(data.q[0], data.r[0], data.q[1], data.r[1]).set_owner(players.right);
-			}
+			board.edge.get(data.q[0], data.r[0], data.q[1], data.r[1]).owner(data.player);
 		}
 	},
 	
 	update_player: function(data) {
-		if ('turn' in data) {
-			players[data.player].turn = data.turn;
+		debug.flow('update_'+data.type+":", data);
+
+		if (!board.player.has(data.player)) {
+			board.player.set(data.player);
 		}
 		
 		if ('inprogress' in data) {
-			players[data.player].inprogress = data.inprogress;
+			board.player.get(data.player).inprogress = data.inprogress;
+		}
+
+		if ('turn' in data) {
+			board.player.get(data.player).turn = data.turn;
+			logic.resolve_round(board);
 		}
 	},
 	
 	update_meta: function(data) {
+		debug.flow('update_'+data.type+":", data);
+
 		if ('player' in data) {
-			players.self = data.player;
+			board.player.self(data.player);
 			
-			if (players.self == "0") {
-				players["0"] = players.left;
-				players["1"] = players.right;
-			} else if (players.self == "1") {
-				players["1"] = players.left;
-				players["0"] = players.right;
-			}
-			
-			players.left.set_name("You");
-			players.right.set_name("Opponent");
+			// TODO: Below should be rewritten.
+			ui.players.name(data.player, "You");
+			ui.players.name(board.player.is_self(0) ? 1 : 0, "Opponent");
 		}
 	}
 };
