@@ -1,9 +1,9 @@
 
 define(
-	['shared/directions'],
-	function(directions) {
+	['shared/directions', 'shared/message'],
+	function(directions, message) {
 		var root = {	
-			is_dragging: false,
+			dragging: false,
 			path: [],
 
 			get_x: function(q1, r1, q2, r2) {
@@ -50,51 +50,40 @@ define(
 		});
 
 		hooks.on('hex:mouse_over', function(event) {
-			if (root.is_dragging) {
-				var last_hex = root.path[root.path.length - 1];
-				var bisection = false;
-				debug.temp('drag from', last_hex.q, ',', last_hex.r, 'to', this.q, ',', this.r);
-
-				for (var i = 0; i < root.path.length - 1; i++) {
-					if (bisection === false && root.path[i].q == this.q && root.path[i].r == this.r) {
-						bisection = i;
-						debug.temp('bisect at', bisection);
-					}
-
-					if (bisection !== false) {
+			if (root.dragging !== false) {
+				debug.temp(root.path);
+				if (root.path.length > 1) {
+					for (var i = root.path.length - 2; i >= 0; i--) {
 						var hex1 = root.path[i];
 						var hex2 = root.path[i+1];
-						var edge = GAME_STATE.edge(hex1.q, hex1.r, hex2.q, hex2.r);
+						var edge = this.parent_state.edge(hex1.q, hex1.r, hex2.q, hex2.r);
 
-						debug.temp('undrag0', hex1, hex2);
 						edge._entity.removeComponent(edge._image.hover);
 						edge._entity.addComponent(edge._image.normal);
 						edge._entity.attr({w: edge.width, h: edge.height});
 						edge._entity.draw();
 					}
-				};
+				}
 
-				if (bisection !== false) {
-					root.path = root.path.slice(0, bisection+1);
-				} else if (this.parent_state.in_bounds(last_hex.q, last_hex.r, this.q, this.r)) {
-					var edge = this.parent_state.edge(this.q, this.r, last_hex.q, last_hex.r);
-					debug.temp('valid edge', edge);
+				debug.temp('path to', this.q, this.r);
+				root.path = this.parent_state.path(root.dragging.q, root.dragging.r, this.q, this.r);
 
-					if (edge.active) {
-						debug.temp('edge is active');
+				if (root.path == null) {
+					root.path = [];
+				}
+
+				if (root.path.length > 1) {
+					for (var i = root.path.length - 2; i >= 0; i--) {
+						var hex1 = root.path[i];
+						var hex2 = root.path[i+1];
+						var edge = this.parent_state.edge(hex1.q, hex1.r, hex2.q, hex2.r);
+
 						edge._entity.removeComponent(edge._image.normal);
 						edge._entity.addComponent(edge._image.hover);
 						edge._entity.attr({w: edge.width, h: edge.height});
 						edge._entity.draw();
-
-						root.path.push({
-							q: this.q,
-							r: this.r,
-						});
 					}
 				}
-
-				debug.temp('new path', root.path.length, root.path);
 			}
 
 			this._entity.removeComponent(this._image.normal);
@@ -112,28 +101,24 @@ define(
 
 		hooks.on('hex:mouse_down', function(event) {
 			if (event.mouseButton === Crafty.mouseButtons.LEFT) {
-				root.is_dragging = true;
-				root.path = [];
-
-				root.path.push({
+				root.dragging = {
 					q: this.q,
 					r: this.r,
-				});
+				};
+
+				debug.temp('origin', root.dragging);
 			}
 		});
 
 		hooks.on('hex:mouse_up', function(event) {
-			debug.temp('mouse up');
 			if (event.mouseButton === Crafty.mouseButtons.LEFT) {
 				debug.temp('end drag');
-				root.is_dragging = false;
 
 				if (root.path.length > 1) {
 					for (var i = root.path.length - 2; i >= 0; i--) {
 						var hex1 = root.path[i];
 						var hex2 = root.path[i+1];
-						console.log('undrag', hex1, hex2);
-						var edge = GAME_STATE.edge(hex1.q, hex1.r, hex2.q, hex2.r);
+						var edge = this.parent_state.edge(hex1.q, hex1.r, hex2.q, hex2.r);
 
 						edge._entity.removeComponent(edge._image.hover);
 						edge._entity.addComponent(edge._image.normal);
@@ -143,6 +128,37 @@ define(
 				}
 
 				root.path = [];
+
+				var origin = this.parent_state.hex(root.dragging.q, root.dragging.r);
+				root.dragging = false;
+
+				// TODO: Move this to somewhere more appropriate. Don't allow arbitrary length drags.
+				debug.temp('origin', origin, root.dragging);
+				if (origin != null) {
+					// TODO: Make this more efficient.
+					var units = origin.units();
+					var player_id = this.parent_state.meta.local_player_id;
+					var unit = null;
+					for (var key in units) {
+						if (units[key].owner == player_id) {
+							debug.temp('found unit');
+							unit = units[key];
+							break;
+						}
+					};
+
+					debug.temp('unit', unit);
+					if (unit != null) {
+						message.send('update', {
+							type: 'action',
+							action: 'move',
+							player: player_id,
+							unit: unit.id,
+							q: this.q,
+							r: this.r,
+						});
+					}
+				}
 			}
 		});
 

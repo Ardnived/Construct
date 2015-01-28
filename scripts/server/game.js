@@ -113,10 +113,12 @@ define(
 					for (var i in directions.keys) {
 						if (Math.random() < board_density) {
 							var key = directions.keys[i];
-							var q2 = q + directions[key].offset.q;
-							var r2 = r + directions[key].offset.r;
 
-							this.edge(q, r, q2, r2).active = true;
+							if (key != 'south' && key != 'north') {
+								var q2 = q + directions[key].offset.q;
+								var r2 = r + directions[key].offset.r;
+								this.edge(q, r, q2, r2).active = true;
+							}
 						}
 					}
 

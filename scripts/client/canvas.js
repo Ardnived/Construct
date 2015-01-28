@@ -96,7 +96,7 @@ define(
 
 		hooks.on('edge:update', function(data) {
 			this.active = data.active;
-			this._entity.visible = data.active;
+			this._entity.visible = this.active;
 		});
 
 		hooks.on('hex:new', function() {

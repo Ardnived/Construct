@@ -22,6 +22,24 @@ define(
 					];
 				}
 			},
+			move: {
+				targets: [targets.empty],
+				execute: function(state, data) {
+					debug.temp('apply move', data);
+					var unit = state.player(data.player).unit(data.unit)
+					unit.position(data.q, data.r);
+
+					return [
+						{
+							type: 'unit',
+							player: data.player,
+							unit: data.unit,
+							q: data.q,
+							r: data.r,
+						},
+					];
+				}
+			}
 		};
 
 		for (var key in root) {

@@ -110,6 +110,108 @@ define(
 				}
 			},
 
+			distance: function(q1, r1, q2, r2) {
+				return Math.abs(q1 - q2) + Math.abs(r1 - r2);
+			},
+
+			path: function(qStart, rStart, qEnd, rEnd, limit) {
+				var closed_list = {};
+				var open_list = {};
+				var came_from = {};
+				var actual_cost = {};
+				var estimate_cost = {};
+
+				if (typeof limit === 'undefined') limit = 10;
+
+				var start_key = make_key(qStart, rStart);
+				open_list[start_key] = { q: qStart, r: rStart };
+				open_list.count = 1;
+				actual_cost[start_key] = 0;
+				estimate_cost[start_key] = this.distance(qStart, rStart, qEnd, rEnd);
+
+				var head = null;
+				var head_key = null;
+				var success = false;
+
+				while (open_list.count > 0) {
+					debug.temp('list', open_list);
+					var head_heuristic = Number.POSITIVE_INFINITY;
+
+					for (var key in open_list) {
+						if (key == 'count') continue;
+
+						if (estimate_cost[key] < head_heuristic) {
+							head_key = key;
+							head_heuristic = estimate_cost[key];
+						}
+					}
+
+					if (head_heuristic > limit) {
+						success = false;
+						break;
+					}
+
+					closed_list[head_key] = open_list[head_key];
+					delete open_list[head_key];
+					open_list.count--;
+
+					head = closed_list[head_key];
+
+					if (this.distance(head.q, head.r, qEnd, rEnd) == 0) {
+						success = true;
+						break;
+					}
+
+					for (var i = directions.keys.length - 1; i >= 0; i--) {
+						var offset = directions[directions.keys[i]].offset;
+						var qN = head.q + offset.q;
+						var rN = head.r + offset.r;
+						var key = make_key(qN, rN);
+
+						if (key in closed_list) {
+							continue;
+						}
+
+						var test_actual_cost = actual_cost[head_key] + 1;
+
+						if (head_key in open_list && actual_cost[key] <= test_actual_cost) {
+							continue;
+						}
+
+						var edge = this.edge(head.q, head.r, qN, rN);
+						if (edge == null || edge.active == false) {
+							continue;
+						}
+
+						if (!(head_key in open_list)) {
+							open_list[key] = { q: qN, r: rN };
+							open_list.count++;
+						}
+
+						came_from[key] = head_key;
+						actual_cost[key] = test_actual_cost;
+						estimate_cost[key] = test_actual_cost + this.distance(qN, rN, qEnd, rEnd);
+					};
+				}
+
+				if (success) {
+					debug.temp('build path');
+					var path = [];
+
+					while (head_key in closed_list) {
+						head = closed_list[head_key];
+						path.push(head);
+
+						head_key = came_from[head_key];
+					};
+
+					debug.temp('path', path);
+					return path;
+				} else {
+					return null;
+				}
+			},
+
 			min_q: function() { return 1; },
 			max_q: function() { return config.board.width - 1; },
 			min_r: function(q) { return -Math.floor(q / 2); },
