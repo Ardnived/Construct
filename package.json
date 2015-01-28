@@ -1,0 +1,12 @@
+{
+  "name": "Construct",
+  "description": "A nodejs strategy game.",
+  "author": "Devindra Payment (@Ardnived)",
+  "dependencies": {
+    "binaryjs": "~0.2.1",
+    "requirejs": "~2.1.15",
+    "colors": "~1.0.3",
+    "node-uuid": "~1.4.1"
+  },
+  "engine": "node 0.10.22"
+}
