@@ -6,8 +6,8 @@ if (config.is_server) {
 }
 
 define(
-	['shared/actions'],
-	function(actions) {
+	['shared/actions/all', 'shared/units/all'],
+	function(actions, units) {
 		var RELATION = 127;
 		var JSON_OPEN = 126;
 		var JSON_CLOSE = 125;
@@ -16,7 +16,6 @@ define(
 		var NULL = 122;
 		 
 		var BUFFER_SIZE = 16;
-		var message = {};
 
 		var text = {
 			"400": "It is not your turn.",
@@ -26,18 +25,18 @@ define(
 			"501": "You cannot act on another player's behalf!",
 		};
 
-		var keys = ['type', 'message', 'q', 'r', 'unit', 'player', 'active', 'turn', 'action'];
+		var keys = ['type', 'message', 'q', 'r', 'unit', 'player', 'active', 'action', 'number', 'unit_type'];
 
 		var values = {
 			type: ['action', 'meta', 'hex', 'edge', 'player', 'unit'],
 			action: Object.keys(actions),
 			message: Object.keys(text),
-			//unit: ['sniffer', 'peeper', 'bouncer', 'enforcer', 'seeker', 'cleaner', 'carrier'],
+			unit_type: Object.keys(units),
 		};
 
 		var types = ['default', 'update', 'response', 'chat'];
 
-		function construct(type) {
+		function message(type) {
 			this.type = typeof type !== 'undefined' ? type : types[0];
 			this.binary = null;
 			this.data = null;
@@ -47,7 +46,7 @@ define(
 		/**
 		 * Updates this.binary by encoding this.data
 		 */
-		construct.prototype.encode = function(data, dictionary) {
+		message.prototype.encode = function(data, dictionary) {
 			if ( typeof data === 'undefined') {
 				data = this.data;
 				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
@@ -111,7 +110,7 @@ define(
 			return true;
 		};
 
-		construct.prototype.write = function(value, dictionary) {
+		message.prototype.write = function(value, dictionary) {
 			//debug.parse("write", value, "to", this.length);
 			var query = value; //TODO: remove this debug code.
 
@@ -127,7 +126,7 @@ define(
 				value = dictionary.indexOf(value);
 
 				if (value == -1) {
-					debug.error("Unrecognized key on encode:", query);
+					debug.error("Unrecognized key on encode:", query, this.data);
 					debug.parse(dictionary);
 					return;
 				}
@@ -137,7 +136,7 @@ define(
 			this.length++;
 		};
 
-		construct.prototype.decode = function() {
+		message.prototype.decode = function() {
 			this.data = null;
 			var jsonkey = null;
 			var key = null;
@@ -228,7 +227,7 @@ define(
 			this.data = jsontree[0];
 		};
 
-		construct.prototype.read = function(index, dictionary) {
+		message.prototype.read = function(index, dictionary) {
 			switch (index) {
 				case JSON_OPEN:
 					return 'JSON_OPEN';
@@ -271,7 +270,7 @@ define(
 							debug.error("Cannot dispatch message with no data.");
 						}
 
-						var msg = new construct();
+						var msg = new message();
 						msg.type = type;
 						msg.data = data;
 						msg.encode();
@@ -289,7 +288,7 @@ define(
 			        view[i] = binary[i];
 			    }
 
-				var msg = new construct();
+				var msg = new message();
 				msg.binary = view;
 				msg.decode();
 				

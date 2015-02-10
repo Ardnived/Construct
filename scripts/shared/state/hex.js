@@ -9,23 +9,34 @@ define(
 			this.parent_state = parent_state;
 			this.q = q;
 			this.r = r;
+			this.type = null;
 			this._units = {};
 		};
 
 		hex.prototype.units = function() {
 			return this._units;
-		}
+		};
+
+		hex.prototype.unit = function(player_id) {
+			// TODO: Make this more efficient.
+			for (var key in this._units) {
+				if (this._units[key].owner == player_id) {
+					return this._units[key];
+				}
+			};
+
+			return null;
+		};
 
 		hex.prototype.edge = function(direction) {
 			this.parent_state.edge(this.q, this.r, this.q + direction.offset.q, this.r + direction.offset.r);
-		}
+		};
 
 		return hex;
 	}
 );
 
-hooks.on('unit:move', function(old_position) {
-	debug.temp('got unit:move');
+hooks.on('unit:moved', function(old_position) {
 	var unit_index = this.owner+"_"+this.id;
 	var hex;
 
@@ -40,7 +51,7 @@ hooks.on('unit:move', function(old_position) {
 		hex._units[unit_index] = this;
 		hooks.trigger('hex:unit_gained', hex, this);
 	}
-});
+}, hooks.PRIORITY_CRITICAL);
 
 hooks.on('hex:is_visible', function(visible, player_id) {
 	if (!visible) {
@@ -54,4 +65,4 @@ hooks.on('hex:is_visible', function(visible, player_id) {
 	}
 
 	return visible;
-});
+}, hooks.PRIORITY_CRITICAL);

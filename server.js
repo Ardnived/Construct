@@ -10,20 +10,24 @@ requirejs(['global/config', 'global/debug', 'global/hooks']);
 requirejs(
 	['http', 'fs', 'path', 'url'],
 	function(http, fs, path, url) {
-		function respond(type, response, param) {
+		function respond(type, response, param, content_type) {
 			switch (type) {
 				case 404:
-					response.writeHead(404, {"Content-Type" : "text/plain"});
+					response.writeHead(404, { "Content-Type" : "text/plain" });
 					response.write("404 Not Found\n");
 					break;
 				case 500:
 					var error = param;
-					response.writeHead(500, {"Content-Type" : "text/plain"});
+					response.writeHead(500, { "Content-Type" : "text/plain" });
 					response.write(error+"\n");
 					break;
 				case 200:
 					var file = param;
-					response.writeHead(200);
+					if (typeof content_type === 'undefined') {
+						response.writeHead(200);
+					} else {
+						response.writeHead(200, { "Content-Type" : content_type });
+					}
 					response.write(file, "binary");
 					break;
 			}
@@ -47,14 +51,23 @@ requirejs(
 			fs.exists(filename, function(exists) {
 				if (exists) {
 					if (fs.statSync(filename).isDirectory()) {
-						filename += '/client.html';
+						filename += 'client.html';
 					}
 
 					fs.readFile(filename, "binary", function(error, file) {
 						if (error) {
 							respond(500, response, error);
 						} else {
-							respond(200, response, file);
+							var content_type;
+							if (filename.indexOf('js', filename.length - 2) !== -1) {
+								content_type = "application/javascript";
+							} else if (filename.indexOf('html', filename.length - 4) !== -1) {
+								content_type = "text/html";
+							} else if (filename.indexOf('css', filename.length - 3) !== -1) {
+								content_type = "text/css";
+							}
+
+							respond(200, response, file, content_type);
 						}
 					});
 				} else {

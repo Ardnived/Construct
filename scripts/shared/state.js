@@ -4,16 +4,19 @@ define(
 	function(player, hex, edge, directions) {
 		function state(id) {
 			this.id = id;
+			this.round = 0;
 			this._next_player_index = 0;
-			this._player_list = {};
+			this._player_list = [];
 			this._edge_list = {};
 			this._hex_list = {};
-			this.meta = {};
+			this.meta = {
+				player_count: 0,
+			};
 		}
 
 		function make_key(q1, r1, q2, r2) {
 			if (arguments.length > 2) {
-				if (q1 > q2) {
+				if (q1 > q2 || (q1 == q2 && r1 > r2)) {
 					var temp = q1;
 					q1 = q2;
 					q2 = temp;
@@ -66,33 +69,53 @@ define(
 
 					return this._edge_list[key];
 				} else {
+					debug.error("Attempted to retrieve an out of bounds edge.");
 					return null;
 				}
 			},
 
-			edges: function() {
-				return this._edge_list;
+			edges: function(q, r) {
+				if (typeof q !== 'undefined' && typeof r !== 'undefined') {
+					var result = [];
+
+					if (this.in_bounds(q, r)) {
+						for (var i = directions.keys.length - 1; i >= 0; i--) {
+							var offset = directions[directions.keys[i]].offset;
+
+							result.push(this.edge(q, r, q + offset.q, r + offset.r));
+						}
+					}
+
+					return result;
+				} else {
+					return this._edge_list;
+				}
 			},
 
 			new_player: function(user_id) {
-				var player_id = this._next_player_index;
-				this._next_player_index++;
-				
-				var player = this.player(player_id);
-				player.user_id = user_id;
+				var player_index = this._next_player_index;
 
-				return player_id;
+				if (player_index < this.meta.player_count) {
+					this._next_player_index++;
+					
+					var player = this.player(player_index);
+					player.user_id = user_id;
+
+					return player_index;
+				} else {
+					return null;
+				}
 			},
 
-			player: function(player_id) {
-				if (typeof player_id === 'undefined') {
-					return null;
-				} else {
-					if (!(player_id in this._player_list)) {
-						this._player_list[player_id] = hooks.trigger('player:new', new player(this, player_id));
+			player: function(player_index) {
+				if (player_index < this.meta.player_count) {
+					if (this._player_list[player_index] == null) {
+						this._player_list[player_index] = hooks.trigger('player:new', new player(this, player_index));
 					}
 
-					return this._player_list[player_id];
+					return this._player_list[player_index];
+				} else {
+					return null;
 				}
 			},
 
@@ -102,19 +125,29 @@ define(
 
 			in_bounds: function(q1, r1, q2, r2) {
 				if (typeof q2 !== 'undefined') {
-					return directions.find(q2 - q1, r2 - r1) != null
+					result = directions.find(q2 - q1, r2 - r1) != null
 						&& ((this.min_q() <= q1 && q1 <= this.max_q() && this.min_r(q1) <= r1 && r1 <= this.max_r(q1))
 						|| (this.min_q() <= q2 && q2 <= this.max_q() && this.min_r(q2) <= r2 && r2 <= this.max_r(q2)));
 				} else {
-					return (this.min_q() <= q1 && q1 <= this.max_q() && this.min_r(q1) <= r1 && r1 <= this.max_r(q1));
+					result = (this.min_q() <= q1 && q1 <= this.max_q() && this.min_r(q1) <= r1 && r1 <= this.max_r(q1));
 				}
+
+				if (!result) {
+					debug.error("Tried to access an out of bounds location", q1, r1, q2, r2);
+				}
+
+				return result;
 			},
 
 			distance: function(q1, r1, q2, r2) {
-				return Math.abs(q1 - q2) + Math.abs(r1 - r2);
+				return (Math.abs(q1 - q2) + Math.abs(r1 - r2) + Math.abs(q1 + r1 - q2 - r2)) / 2;
 			},
 
 			path: function(qStart, rStart, qEnd, rEnd, limit) {
+				if (qStart == qEnd && rStart == rEnd) {
+					return [{ q: qStart, r: rStart }];
+				}
+
 				var closed_list = {};
 				var open_list = {};
 				var came_from = {};
@@ -134,7 +167,6 @@ define(
 				var success = false;
 
 				while (open_list.count > 0) {
-					debug.temp('list', open_list);
 					var head_heuristic = Number.POSITIVE_INFINITY;
 
 					for (var key in open_list) {
@@ -172,13 +204,13 @@ define(
 							continue;
 						}
 
-						var test_actual_cost = actual_cost[head_key] + 1;
+						var edge = this.edge(head.q, head.r, qN, rN);
+						var test_actual_cost = actual_cost[head_key] + edge.cost;
 
 						if (head_key in open_list && actual_cost[key] <= test_actual_cost) {
 							continue;
 						}
 
-						var edge = this.edge(head.q, head.r, qN, rN);
 						if (edge == null || edge.active == false) {
 							continue;
 						}
@@ -205,7 +237,6 @@ define(
 						head_key = came_from[head_key];
 					};
 
-					debug.temp('path', path);
 					return path;
 				} else {
 					return null;
@@ -244,6 +275,7 @@ hooks.on('state:update', function(updates) {
 			case 'meta':
 				//debug.temp("TODO: Implement the meta:update handler", data);
 				this.meta.local_player_id = data.player;
+				this.meta.player_count = data.number;
 
 				// TODO: This is client-side only code, it shouldn't be in the shared folder.
 				document.getElementById('local_player_title').innerHTML = "Player "+data.player;
@@ -255,4 +287,4 @@ hooks.on('state:update', function(updates) {
 
 		hooks.trigger(data.type+':update', object, data);
 	}
-});
+}, hooks.PRIORITY_CRITICAL);

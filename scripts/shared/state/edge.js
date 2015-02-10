@@ -26,5 +26,9 @@ hooks.on('edge:update', function(data) {
 	if ('units' in data) {
 		hex.units(data.units);
 	}
-});
+
+	if ('number' in data) {
+		this.cost = data.number;
+	}
+}, hooks.PRIORITY_CRITICAL);
 

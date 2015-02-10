@@ -4,7 +4,13 @@ debug = {
 		var params = [":error    -"];
 		Array.prototype.push.apply(params, arguments);
 		console.error.apply(console, params);
-		throw new Error();
+	},
+
+	fatal: function() {
+		var params = [":fatal    -"];
+		Array.prototype.push.apply(params, arguments);
+		console.error.apply(console, params);
+		throw new Error(); // TODO: Becareful with this because it could allow users to crash the server.
 	},
 
 	game: function() {

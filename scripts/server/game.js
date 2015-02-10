@@ -1,7 +1,7 @@
 
 define(
-	['shared/state', 'shared/logic', 'shared/message', 'shared/directions'],
-	function(state, logic, message, directions) {
+	['shared/message', 'shared/directions', 'shared/actions/all'],
+	function(message, directions, actions_list) {
 		var object = {
 
 			reset: function(state, player_id) {
@@ -9,31 +9,25 @@ define(
 
 				// Add meta data to tell the player what his id is.
 				// This information MUST be added first,
-				// otherwise when the player gets the data they won't know who it is addressed to.
+				// otherwise when the player gets the data they won't know when a player id refers to themselves.
 				data.push({
 					type: 'meta',
 					player: player_id,
-					/*unit: [
-						'sniffer',
-						'sniffer',
-						'sniffer',
-					],*/
+					number: state.meta.player_count,
+					// TODO: Send whatever units this player has.
 				});
 				// ===== ===== ===== =====
-				
+
 				// Add data for all players.
 				var players = state.players();
 				for (var i in players) {
 					var player = players[i];
-					// TODO: Fix this calculation.
-					var inprogress = true; //player.turn <= board.player.other(player.id).turn;
-					
-					if (player.turn > 0 || inprogress == false) {
+
+					if (player.active) {
 						data.push({
 							type: 'player',
 							player: player.id,
-							turn: player.turn,
-							active: inprogress ? 1 : 0,
+							active: player.active,
 						});
 					}
 
@@ -41,28 +35,41 @@ define(
 					for (var key in units) {
 						var unit = units[key];
 
-						data.push({
+						var dat = {
 							type: 'unit',
 							unit: unit.id,
 							player: unit.owner,
-							q: unit.q,
-							r: unit.r,
-						});
+							unit_type: unit.type().key,
+						};
+
+						if (unit.q != null && unit.r != null) {
+							dat.q = unit.q;
+							dat.r = unit.r;
+						}
+
+						data.push(dat);
 					}
-				}				
+				}
+
 				// Add all the edge data.
 				var edges = state.edges();
 				for (var key in edges) {
 					var edge = edges[key];
 
-					data.push({
+					var dat = {
 						type: 'edge',
 						q: [edge.q1, edge.q2],
 						r: [edge.r1, edge.r2],
 						active: edge.active,
-					});
+					};
+
+					if (edge.cost != 1) {
+						dat.number = edge.cost;
+					}
+
+					data.push(dat);
 				}
-				
+
 				// Check if the reply has contents.
 				if (data.length > 0) {
 					// If so, send the update back to the requestor.
@@ -75,21 +82,53 @@ define(
 			var request = args.data;
 			var state = args.state;
 
-			// TODO: Check that the request comes from a real player.
-			// TODO: Check that it is the player's turn.
-			// TODO: Check that the action is valid.
+			if (!(request.player in state.players())) {
+				debug.error("Non-existant player", player.id, "tried to act.");
+				return;
+			}
 
-			requirejs(
-				['shared/actions'],
-				function(actions) {
-					var update = [];
-					update = update.concat(actions[request.action].execute(state, request));
+			var player = state.player(request.player);
 
-					// TODO: Update the player turns.
+			if (player.active == false) {
+				debug.error("Player", player.id, "tried to act when it was not their turn.");
+				return;
+			}
 
-					message.send('update', update);
+			var action = actions_list[request.action];
+
+			/*if (typeof request.q === 'number') {
+				var target_q = [request.q];
+				var target_r = [request.r];
+			} else {
+				var target_q = request.q;
+				var target_r = request.r;
+			}
+
+			for (var i = action.targets.length - 1; i >= 0; i--) {
+				var is_valid = action.targets[i];
+
+				if (!is_valid(state, { q: target_q[i], r: target_r[i] }, request.player)) {
+					debug.error("Player", player.id, "tried to use an action on an invalid target.");
+					return;
 				}
-			);
+			};*/
+
+			var update = [];
+			update = update.concat(action.execute(state, request));
+
+			hooks.trigger('player:update', player, {
+				active: false,
+			});
+
+			update.push({
+				type: 'player',
+				player: request.player,
+				active: false,
+			});
+
+			// TODO: Only push updates to all clients when everyone is ready.
+
+			message.send('update', update);
 		});
 
 		hooks.on('state:new', function() {
@@ -97,6 +136,8 @@ define(
 			var board_density = 0.5;
 			var mirrored = false;
 			var qMax = this.max_q();
+
+			this.meta.player_count = 2; // TODO: Define thie elsewhere.
 
 			if (mirrored) {
 				qMax = Math.floor(config.board.width / 2);
@@ -117,7 +158,10 @@ define(
 							if (key != 'south' && key != 'north') {
 								var q2 = q + directions[key].offset.q;
 								var r2 = r + directions[key].offset.r;
-								this.edge(q, r, q2, r2).active = true;
+								var edge = this.edge(q, r, q2, r2);
+								//debug.temp(q, r, q2, r2, this.in_bounds(q, r, q2, r2));
+								edge.active = true;
+								//edge.cost = (Math.random() < 0.2) ? 0 : 1;
 							}
 						}
 					}
@@ -130,13 +174,15 @@ define(
 							var key = directions.keys[i];
 							var q2 = qN + directions[key].offset.q;
 							var r2 = rN + directions[key].offset.r;
+							var mirrored_edge = this.edge(qN, rN, q2, r2);
 
-							if (this.edge(qN, rN, q2, r2).active) {
+							if (mirrored_edge.active) {
 								key = directions[key].opposite;
 								q2 = q + directions[key].offset.q;
 								r2 = r + directions[key].offset.r;
-
-								this.edge(q, r, q2, r2).active = true;
+								var edge = this.edge(q, r, q2, r2)
+								edge.active = true;
+								edge.cost = mirrored_edge.cost;
 							}
 						}
 					}

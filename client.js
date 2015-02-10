@@ -1,6 +1,9 @@
 
 requirejs.config({
 	baseUrl: '/scripts/',
+	paths: {
+		priorityqueuejs: 'external/queue', // For client-server compatibility.
+	},
 	shim: {
 		'external/jquery': {
 			exports: '$',
@@ -11,6 +14,9 @@ requirejs.config({
 		'external/spritegen': {
 			exports: 'psg',
 		},
+		/*'external/queue': {
+			exports: 'PriorityQueue',
+		},*/
 	},
 });
 
@@ -19,20 +25,11 @@ requirejs(['global/config', 'global/debug', 'global/hooks']);
 GAME_STATE = null;
 
 requirejs(
-	['client/dispatch', 'client/ui', 'shared/state', 'client/canvas'], 
-	function(dispatch, ui, state) {
+	['client/dispatch', 'shared/state'], 
+	function(dispatch, state) {
 		GAME_STATE = new state();
-		ui.init();
-
-		for (var q = GAME_STATE.min_q(); q <= GAME_STATE.max_q(); q++) {
-			for (var r = GAME_STATE.min_r(q); r <= GAME_STATE.max_r(q); r++) {
-				// Initialize each hex.
-				GAME_STATE.hex(q, r);
-			}
-		}
 
 		hooks.on('dispatch:update', function(data) {
-			debug.flow("got dispatch:update");
 			if (data instanceof Array) {
 				hooks.trigger('state:update', GAME_STATE, data);
 			}
@@ -42,11 +39,18 @@ requirejs(
 			debug.error("Rejected:", Messages[data.message]);
 		});
 
-		dispatch.init(config.port.socket);
+		requirejs(
+			['client/topbar', 'client/hotkeys', 'client/cursor', 'client/selection', 'client/actions', 'client/board'],
+			function() {
+				for (var q = GAME_STATE.min_q(); q <= GAME_STATE.max_q(); q++) {
+					for (var r = GAME_STATE.min_r(q); r <= GAME_STATE.max_r(q); r++) {
+						// Initialize each hex.
+						GAME_STATE.hex(q, r);
+					}
+				}
 
-		// TODO: Remove this temp code.
-		hooks.on('hex:mouse_over', function(event) {
-			document.getElementById('tooltip').innerHTML = "position: "+this.q+", "+this.r+"<br>units: "+JSON.stringify(Object.keys(this.units()), null, 2);
-		});
+				dispatch.init(config.port.socket);
+			}
+		);
 	}
 );

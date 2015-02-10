@@ -20,12 +20,11 @@ function on_message(stream, meta) {
 	
 	stream.on('data', function(data) {
 		data.copy(buffer, pointer);
-		debug.dispatch("Received data", buffer.readInt8(0), buffer.readUInt8(0), buffer, "of length", buffer.length);
 		pointer += buffer.length;
 	});
 
 	stream.on('end', function() {
-		debug.dispatch("Finished message", buffer.readInt8(0), buffer.readUInt8(0), buffer);
+		debug.dispatch("Received message", buffer.readInt8(0), buffer.readUInt8(0), buffer);
 
 		requirejs(
 			['shared/message'],
@@ -67,7 +66,6 @@ define(
 
 			send: function(binary, length, targets) {
 				if (typeof targets === 'undefined') {
-					debug.dispatch("Sending to all clients.");
 					targets = this.server.clients;
 				} else if (Object.prototype.toString.call(targets) !== '[object Array]') {
 					targets = [targets];

@@ -1,21 +1,21 @@
 
-function on_open(event) {
-	debug.dispatch("Socket Open");
-};
-
-function on_close(event) {
-	debug.dispatch("Socket Closed:", event.code, event.reason);
-};
-
-function on_error(event) {
-	debug.error("Socket Error: ", event);
-};
-
 var socket = null;
 
 define(
 	['shared/message', 'external/binary'],
 	function(message) {
+
+		function on_open(event) {
+			debug.dispatch("Socket Open");
+		};
+
+		function on_close(event) {
+			debug.dispatch("Socket Closed:", event.code, event.reason);
+		};
+
+		function on_error(event) {
+			debug.error("Socket Error: ", event);
+		};
 		
 		function on_message(stream, meta) {
 			debug.dispatch("Received message", "( metadata:", meta, ")");
