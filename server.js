@@ -46,7 +46,7 @@ requirejs(
 			
 			var filename = PATH.join(process.cwd(), "/", uri);
 			
-			DEBUG.dispatch("Request received. ["+uri+"]");
+			//DEBUG.dispatch("Request received. ["+uri+"]");
 			
 			FS.exists(filename, function(exists) {
 				if (exists) {
