@@ -14,8 +14,10 @@ CONFIG.port = {
 
 if (typeof process !== 'undefined') {
 	CONFIG.port.http = process.env.PORT || 3000;
-	CONFIG.port.socket = CONFIG.port.http+1;
 }
+
+// TODO: Refactor this.
+CONFIG.port.socket = CONFIG.port.http;
 
 // ===== CANVAS ===== //
 CONFIG.canvas = {

@@ -7,6 +7,8 @@ requirejs.config({
 
 requirejs(['global/config', 'global/debug', 'global/hooks']);
 
+var http_server;
+
 requirejs(
 	['http', 'fs', 'path', 'url'],
 	function(HTTP, FS, PATH, URL) {
@@ -35,7 +37,7 @@ requirejs(
 			response.end();
 		}
 
-		HTTP.createServer(function(request, response) {
+		http_server = HTTP.createServer(function(request, response) {
 			var uri = URL.parse(request.url).pathname;
 			
 			if (uri.indexOf("server") > -1) {
@@ -83,7 +85,7 @@ requirejs(
 requirejs(
 	['server/dispatch', 'server/game', 'shared/state', 'node-uuid'],
 	function(DISPATCH, GAME, STATE, UUID) {
-		DISPATCH.start(CONFIG.port.socket);
+		DISPATCH.start(http_server);
 
 		var clients = {};
 		var games = {};

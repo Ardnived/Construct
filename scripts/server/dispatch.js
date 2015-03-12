@@ -46,8 +46,8 @@ define(
 		return {
 			server: null,
 
-			start: function(port) {
-				this.server = BINARYJS.BinaryServer({ port: port });
+			start: function(server) {
+				this.server = BINARYJS.BinaryServer({ server: server });
 				this.server.on("error", on_error);
 
 				this.server.on("connection", function(connection) {
