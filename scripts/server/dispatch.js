@@ -61,7 +61,7 @@ define(
 					HOOKS.trigger("dispatch:connection", null, connection);
 				});
 				
-				DEBUG.dispatch("Waiting for incoming connections...");
+				DEBUG.dispatch("Launched Socket Server on port", CONFIG.port.socket);
 			},
 
 			send: function(binary, length, targets) {
