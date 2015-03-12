@@ -12,6 +12,11 @@ CONFIG.port = {
 	socket: process.env.PORT || 3001,
 };
 
+if (typeof process !== 'undefined') {
+	CONFIG.port.http = process.env.PORT || 3000;
+	CONFIG.port.socket = process.env.PORT || 3001;
+}
+
 // ===== CANVAS ===== //
 CONFIG.canvas = {
 	width: 800,
