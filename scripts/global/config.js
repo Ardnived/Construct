@@ -8,12 +8,13 @@ CONFIG.default_player_count = 2;
 
 // ===== PORT ===== //
 CONFIG.port = {
-	http: 3000,
-	socket: 3001,
+	http: 80,
+	socket: 80,
 };
 
 if (typeof process !== 'undefined') {
 	CONFIG.port.http = process.env.PORT || 3000;
+	CONFIG.port.socket = CONFIG.port.http+1;
 }
 
 // ===== CANVAS ===== //
