@@ -8,8 +8,8 @@ CONFIG.default_player_count = 2;
 
 // ===== PORT ===== //
 CONFIG.port = {
-	http: process.env.PORT || 3000,
-	socket: process.env.PORT || 3001,
+	http: 3000,
+	socket: 3001,
 };
 
 if (typeof process !== 'undefined') {
