@@ -25,18 +25,26 @@ requirejs(['global/config', 'global/debug', 'global/hooks']);
 GAME_STATE = null;
 
 requirejs(
-	['client/dispatch', 'shared/state'], 
-	function(dispatch, state) {
-		GAME_STATE = new state();
+	['client/dispatch', 'shared/state', 'shared/message', 'client/updater'], 
+	function(DISPATCH, STATE, MESSAGE) {
+		GAME_STATE = new STATE();
 
-		hooks.on('dispatch:update', function(data) {
+		HOOKS.on('dispatch:update', function(data) {
 			if (data instanceof Array) {
-				hooks.trigger('state:update', GAME_STATE, data);
+				HOOKS.trigger('state:update', GAME_STATE, data);
+			} else {
+				DEBUG.fatal("Tried to send non-array updates", data);
 			}
 		});
 
-		hooks.on('dispatch:rejected', function(data) {
-			debug.error("Rejected:", Messages[data.message]);
+		HOOKS.on('dispatch:rejected', function(data) {
+			var output = "Rejected: "+data.message+' - '+MESSAGE.text[data.message];
+			DEBUG.error(output);
+		});
+
+		HOOKS.on('dispatch:gameover', function(data) {
+			var output = "GAMEOVER: "+data.message+' - '+MESSAGE.text[data.message];
+			DEBUG.error(output);
 		});
 
 		requirejs(
@@ -49,7 +57,7 @@ requirejs(
 					}
 				}
 
-				dispatch.init(config.port.socket);
+				DISPATCH.init(CONFIG.port.socket);
 			}
 		);
 	}

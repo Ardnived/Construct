@@ -1,20 +1,18 @@
 
 define(
-	['shared/message', 'shared/actions/all', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
-	function(message, action_list, graphic, button, text, canvas) {
+	['shared/message', 'client/actions', 'shared/actions/all', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
+	function(MESSAGE, ACTIONS, ACTION_LIST, GRAPHIC, BUTTON, TEXT, CANVAS) {
 		var self = {
-			origin: null,
-			graphic: new graphic(canvas.image.cursor, {
+			selected_hex: null,
+			graphic: new GRAPHIC(CANVAS.image.cursor, {
 				x: 0, y: 0,
-				w: config.hex.scale,
-				h: config.hex.scale,
+				w: CONFIG.hex.scale,
+				h: CONFIG.hex.scale,
 				visible: false,
 			}),
 			abilities: [],
 		};
 		
-		self.graphic.sprite('selected');
-
 		function create_ability_button(offset) {
 			offset *= 0.5;
 			if (offset > 0) offset += 0.5
@@ -32,20 +30,34 @@ define(
 				visible: false,
 			};
 
-			ability.button = new button(canvas.image.test, attr, 'ability', ability);
+			ability.button = new BUTTON(CANVAS.image.test, attr, 'ability', ability);
 			self.graphic.attach(ability.button);
 
 			// -----------
 
 			delete attr.h;
-			//attr.x = self.graphic.w * (Math.abs(offset) + 0.5) * Math.sign(offset);
-			attr.y = self.graphic.h * 0.75
+			attr.w = self.graphic.w;
+			if (offset > 0) {
+				attr.x = self.graphic.w * (Math.abs(offset*2) - 0.4);
+			} else {
+				attr.x = -self.graphic.w * (Math.abs(offset*2) + 0.6);
+			}
+			
+			//attr.y = self.graphic.h * 0.75
 
-			ability.description = new text("", attr);
+			ability.description = new TEXT("", attr);
 			ability.description.css({
-				'text-align': 'right',
+				'text-align': 'left',
 				'text-shadow': '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
+				'color': 'lightblue',
 			});
+
+			if (offset < 0) {
+				ability.description.css({
+					'text-align': 'right',
+				});
+			}
+
 			ability.button.attach(ability.description);
 
 			// -----------
@@ -56,49 +68,77 @@ define(
 		create_ability_button(1);
 		create_ability_button(-1);
 
-		hooks.on('ability:mouse_over', function() {
-			this.description.css({ color: 'lightgreen' });
+		HOOKS.on('ability:mouse_over', function() {
+			if (this.button.active) {
+				this.description.css({ color: 'lightgreen' });
+			}
 		});
 
-		hooks.on('ability:mouse_out', function() {
-			this.description.css({ color: 'white' });
+		HOOKS.on('ability:mouse_out', function() {
+			if (this.button.active) {
+				this.description.css({ color: 'lightblue' });
+			}
 		});
 
-		hooks.on('ability:mouse_click', function() {
-			debug.flow('do ability', this.action);
+		HOOKS.on('ability:mouse_click', function() {
+			var local_player_id = GAME_STATE.meta.local_player.id;
+			var unit_id = self.selected_hex.unit(local_player_id).id;
+
+			ACTIONS.execute(this.action, unit_id);
 		});
 
-
-		hooks.on('hex:mouse_down', function(event) {
-			var local_player = this.parent_state.player(this.parent_state.meta.local_player_id);
+		HOOKS.on('hex:mouse_down', function(event) {
+			var local_player = this.parent_state.meta.local_player;
 			var local_unit = this.unit(local_player.id);
 
 			if (event.mouseButton === Crafty.mouseButtons.LEFT) {
-				self.origin = this;
-				self.graphic.attr({
-					x: this.graphic.x,
-					y: this.graphic.y,
-					visible: true,
-				});
-
-				var actions = [];
 				if (local_unit != null) {
-					actions = local_unit.type().actions;
-				}
+					self.selected_hex = this;
+					self.graphic.attr({
+						x: this.graphic.x,
+						y: this.graphic.y,
+						visible: true,
+					});
 
-				for (var i = self.abilities.length - 1; i >= 0; i--) {
-					var ability = self.abilities[i];
+					var actions = local_unit.type.actions;
+					var action_keys = Object.keys(actions);
 
-					if (i < actions.length) {
-						ability.action = actions[i];
-						
-						ability.description.text = ability.action;
-						ability.button.visible = true;
-						ability.button.active = (ability.action in action_list);
-					} else {
+					for (var i = self.abilities.length - 1; i >= 0; i--) {
+						var ability = self.abilities[i];
+
+						if (i < action_keys.length) {
+							ability.action = action_keys[i];
+							
+							ability.description.text = '<u>'+ability.action+'</u><br>'+actions[ability.action];
+							ability.button.visible = true;
+							ability.button.active = (ability.action in ACTION_LIST);
+						} else {
+							ability.button.visible = false;
+							ability.description.text = false;
+						}
+					}
+				} else if (self.graphic.visible) {
+					self.graphic.visible = false;
+
+					for (var i = self.abilities.length - 1; i >= 0; i--) {
+						var ability = self.abilities[i];
 						ability.button.visible = false;
 						ability.description.text = false;
 					}
+				}
+			}
+		});
+
+		// TODO: Find a more efficient way to do this.
+		HOOKS.on('unit:moved', function(old_position) {
+			if (self.selected_hex == old_position || (self.selected_hex != null && old_position != null && self.selected_hex.q === old_position.q && self.selected_hex.r === old_position.r)) {
+				// TODO: This is duplicate code with other code elsewhere in this file.
+				self.graphic.visible = false;
+
+				for (var i = self.abilities.length - 1; i >= 0; i--) {
+					var ability = self.abilities[i];
+					ability.button.visible = false;
+					ability.description.text = false;
 				}
 			}
 		});

@@ -1,75 +1,71 @@
 
 define(
-	['shared/state/player', 'shared/state/hex', 'shared/state/edge', 'shared/directions'],
-	function(player, hex, edge, directions) {
+	['shared/state/player', 'shared/state/team', 'shared/state/hex', 'shared/state/edge', 'shared/state/meta', 'shared/directions', 'shared/message', 'shared/round'],
+	function(PLAYER, TEAM, HEX, EDGE, META, DIRECTIONS, MESSAGE) {
 		function state(id) {
 			this.id = id;
-			this.round = 0;
 			this._next_player_index = 0;
 			this._player_list = [];
 			this._edge_list = {};
 			this._hex_list = {};
-			this.meta = {
-				player_count: 0,
-			};
-		}
-
-		function make_key(q1, r1, q2, r2) {
-			if (arguments.length > 2) {
-				if (q1 > q2 || (q1 == q2 && r1 > r2)) {
-					var temp = q1;
-					q1 = q2;
-					q2 = temp;
-
-					temp = r1;
-					r1 = r2;
-					r2 = temp;
-				}
-
-				return q1+','+r1+'/'+q2+','+r2;
-			} else {
-				return q1+','+r1;
-			}
+			this._team_list = {};
+			this.meta = META.create(this);
 		}
 
 		state.prototype = {
 			hex: function(q, r) {
-				if (this.in_bounds(q, r)) {
-					var key = make_key(q, r);
+				if (typeof q === 'string') {
+					// q might also be the key.
+					return this._hex_list[q];
+				} else if (this.in_bounds(q, r)) {
+					var key = HEX.key(q, r);
 					if (!(key in this._hex_list)) {
-						this._hex_list[key] = hooks.trigger('hex:new', new hex(this, q, r));
+						this._hex_list[key] = HEX.create(this, q, r);
 					}
 
 					return this._hex_list[key];
 				} else {
+					DEBUG.error("Attempted to retrieve an out of bounds hex.", q, r);
 					return null;
 				}
 			},
 
-			hexes: function(q) {
+			hexes: function(q, r) {
 				if (typeof q === 'undefined') {
 					return this._hex_list;
-				} else {
+				} else if (typeof r === 'undefined') {
 					var results = [];
 					for (var r = this.max_r(q); r >= this.min_r(q); r--) {
 						results.push(this.hex(q, r));
 					};
 
 					return results;
+				} else {
+					var result = [];
+
+					for (var i = DIRECTIONS.keys.length - 1; i >= 0; i--) {
+						var offset = DIRECTIONS[DIRECTIONS.keys[i]].offset;
+
+						if (this.in_bounds(q + offset.q, r + offset.r)) {
+							result.push(this.hex(q + offset.q, r + offset.r));
+						}
+					}
+
+					return result;
 				}
 			},
 
 			edge: function(q1, r1, q2, r2) {
 				if (this.in_bounds(q1, r1, q2, r2)) {
-					var key = make_key(q1, r1, q2, r2);
+					var key = EDGE.key(q1, r1, q2, r2);
 
 					if (!(key in this._edge_list)) {
-						this._edge_list[key] = hooks.trigger('edge:new', new edge(this, q1, r1, q2, r2));
+						this._edge_list[key] = EDGE.create(this, q1, r1, q2, r2);
 					}
 
 					return this._edge_list[key];
 				} else {
-					debug.error("Attempted to retrieve an out of bounds edge.");
+					DEBUG.error("Attempted to retrieve an out of bounds edge.", q1, r1, q2, r2);
 					return null;
 				}
 			},
@@ -79,8 +75,8 @@ define(
 					var result = [];
 
 					if (this.in_bounds(q, r)) {
-						for (var i = directions.keys.length - 1; i >= 0; i--) {
-							var offset = directions[directions.keys[i]].offset;
+						for (var i = DIRECTIONS.keys.length - 1; i >= 0; i--) {
+							var offset = DIRECTIONS[DIRECTIONS.keys[i]].offset;
 
 							result.push(this.edge(q, r, q + offset.q, r + offset.r));
 						}
@@ -92,28 +88,15 @@ define(
 				}
 			},
 
-			new_player: function(user_id) {
-				var player_index = this._next_player_index;
-
-				if (player_index < this.meta.player_count) {
-					this._next_player_index++;
-					
-					var player = this.player(player_index);
-					player.user_id = user_id;
-
-					return player_index;
-				} else {
-					return null;
-				}
-			},
-
 			player: function(player_index) {
-				if (player_index < this.meta.player_count) {
-					if (this._player_list[player_index] == null) {
-						this._player_list[player_index] = hooks.trigger('player:new', new player(this, player_index));
+				if (player_index != null && player_index != NaN && player_index < this.meta.player_count) {
+					var key = PLAYER.key(player_index);
+
+					if (this._player_list[key] == null) {
+						this._player_list[key] = PLAYER.create(this, player_index);
 					}
 
-					return this._player_list[player_index];
+					return this._player_list[key];
 				} else {
 					return null;
 				}
@@ -123,9 +106,27 @@ define(
 				return this._player_list;
 			},
 
+			team: function(team_index) {
+				if (team_index != null && team_index != NaN) {
+					var key = TEAM.key(team_index);
+
+					if (this._team_list[key] == null) {
+						this._team_list[key] = TEAM.create(this, team_index);
+					}
+
+					return this._team_list[key];
+				} else {
+					return null;
+				}
+			},
+
+			teams: function() {
+				return this._team_list;
+			},
+
 			in_bounds: function(q1, r1, q2, r2) {
 				if (typeof q2 !== 'undefined') {
-					result = directions.find(q2 - q1, r2 - r1) != null
+					result = DIRECTIONS.find(q2 - q1, r2 - r1) != null
 						&& ((this.min_q() <= q1 && q1 <= this.max_q() && this.min_r(q1) <= r1 && r1 <= this.max_r(q1))
 						|| (this.min_q() <= q2 && q2 <= this.max_q() && this.min_r(q2) <= r2 && r2 <= this.max_r(q2)));
 				} else {
@@ -133,7 +134,7 @@ define(
 				}
 
 				if (!result) {
-					debug.error("Tried to access an out of bounds location", q1, r1, q2, r2);
+					DEBUG.error("Tried to access an out of bounds location", q1, r1, q2, r2);
 				}
 
 				return result;
@@ -144,7 +145,7 @@ define(
 			},
 
 			path: function(qStart, rStart, qEnd, rEnd, limit) {
-				if (qStart == qEnd && rStart == rEnd) {
+				if (qStart === qEnd && rStart === rEnd) {
 					return [{ q: qStart, r: rStart }];
 				}
 
@@ -156,7 +157,7 @@ define(
 
 				if (typeof limit === 'undefined') limit = 10;
 
-				var start_key = make_key(qStart, rStart);
+				var start_key = HEX.key(qStart, rStart);
 				open_list[start_key] = { q: qStart, r: rStart };
 				open_list.count = 1;
 				actual_cost[start_key] = 0;
@@ -170,7 +171,7 @@ define(
 					var head_heuristic = Number.POSITIVE_INFINITY;
 
 					for (var key in open_list) {
-						if (key == 'count') continue;
+						if (key === 'count') continue;
 
 						if (estimate_cost[key] < head_heuristic) {
 							head_key = key;
@@ -194,11 +195,11 @@ define(
 						break;
 					}
 
-					for (var i = directions.keys.length - 1; i >= 0; i--) {
-						var offset = directions[directions.keys[i]].offset;
+					for (var i = DIRECTIONS.keys.length - 1; i >= 0; i--) {
+						var offset = DIRECTIONS[DIRECTIONS.keys[i]].offset;
 						var qN = head.q + offset.q;
 						var rN = head.r + offset.r;
-						var key = make_key(qN, rN);
+						var key = HEX.key(qN, rN);
 
 						if (key in closed_list) {
 							continue;
@@ -227,7 +228,7 @@ define(
 				}
 
 				if (success) {
-					debug.temp('build path');
+					DEBUG.temp('build path');
 					var path = [];
 
 					while (head_key in closed_list) {
@@ -244,47 +245,58 @@ define(
 			},
 
 			min_q: function() { return 1; },
-			max_q: function() { return config.board.width - 1; },
+			max_q: function() { return CONFIG.board.width - 1; },
 			min_r: function(q) { return -Math.floor(q / 2); },
-			max_r: function(q) { return (config.board.height + ((q + 1) % 2)) - Math.floor(q / 2); },
+			max_r: function(q) { return (CONFIG.board.height + ((q + 1) % 2)) - Math.floor(q / 2); },
 		};
+
+		HOOKS.on('state:sync', function() {
+			DEBUG.temp('--------- PROCESS ---------');
+			var active_player_count = 0;
+
+			var hexes = this.hexes();
+			for (var k in hexes) {
+				HOOKS.trigger('hex:sync', hexes[k], this.meta.round);
+			}
+
+			for (var i = this.meta.player_count - 1; i >= 0; i--) {
+				var player = this.player(i);
+
+				if (player.playing) {
+					player.active = true;
+					active_player_count++;
+					HOOKS.trigger('player:sync', player, this.meta.round);
+				}
+			}
+
+			var teams = this.teams()
+			for (var k in teams) {
+				HOOKS.trigger('team:sync', teams[k], this.meta.round);
+			}
+
+			if (active_player_count <= 1 && !CONFIG.is_client) {
+				// If there's only one player left, that means they've won.
+				// TODO: Implement victory.
+				for (var i = this.meta.player_count - 1; i >= 0; i--) {
+					var player = this.player(i);
+
+					if (player.playing) {
+						MESSAGE.send('gameover', {
+							message: "200", // Victory
+						}, player.client);
+					} else {
+						MESSAGE.send('gameover', {
+							message: "100", // Defeat
+						}, player.client);
+					}
+				}
+				
+				DEBUG.temp('========= GAME OVER =========');
+			} else {
+				DEBUG.temp('========= SYNC =========');
+			}
+		}, HOOKS.ORDER_EXECUTE);
 
 		return state;
 	}
 );
-
-hooks.on('state:update', function(updates) {
-	debug.flow('got state:update');
-	for (var i in updates) {
-		var data = updates[i];
-		var object = null;
-
-		switch (data.type) {
-			case 'hex':
-				object = this.hex(data.q, data.r);
-				break;
-			case 'edge':
-				object = this.edge(data.q[0], data.r[0], data.q[1], data.r[1]);
-				break;
-			case 'player':
-				object = this.player(data.player);
-				break;
-			case 'unit':
-				object = this.player(data.player).unit(data.unit);
-				break;
-			case 'meta':
-				//debug.temp("TODO: Implement the meta:update handler", data);
-				this.meta.local_player_id = data.player;
-				this.meta.player_count = data.number;
-
-				// TODO: This is client-side only code, it shouldn't be in the shared folder.
-				document.getElementById('local_player_title').innerHTML = "Player "+data.player;
-				continue;
-			default:
-				// Do nothing
-				break;
-		}
-
-		hooks.trigger(data.type+':update', object, data);
-	}
-}, hooks.PRIORITY_CRITICAL);

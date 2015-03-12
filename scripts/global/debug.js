@@ -1,9 +1,14 @@
 
-debug = {
+DEBUG = {
 	error: function() {
 		var params = [":error    -"];
 		Array.prototype.push.apply(params, arguments);
 		console.error.apply(console, params);
+
+		// TODO: Remove this test code.
+		if (typeof window !== 'undefined') {
+			document.getElementById('error-message').innerHTML = params.join(' ');
+		}
 	},
 
 	fatal: function() {

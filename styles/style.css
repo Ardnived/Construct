@@ -27,13 +27,13 @@ body {
 #left {
 	text-align: left;
 	position: absolute;
-	left: 0;
+	left: 5px;
 }
 
 #right {
 	text-align: right;
 	position: absolute;
-	right: 0;
+	right: 5px;
 }
 
 .flip {
@@ -44,7 +44,9 @@ body {
 }
 
 #tooltip {
-	min-height: 2em;
+	min-height: 4.7em;
+	border-top: 2px solid #D3D3D3;
+	border-bottom: 2px solid #D3D3D3;
 }
 
 button {
@@ -52,16 +54,37 @@ button {
 	border: 2px solid lightblue;
 	border-radius: 5px;
 	padding: 3px;
-	margin: 2px;
+	margin: 3px 1px;
 	text-align: left;
 	outline: none;
 }
 
 button:hover {
-	background: lightblue;
-	border-color: darkblue;
+	background-color: lightgreen;
+	border-color: lightgreen;
 }
 
 button img {
 	height: 24px;
 }
+
+/* === UNIT IMAGES === */
+/* TODO: refactor this stuff */
+.unit {
+	width: 24px;
+	height: 24px;
+	border-color: lightgrey;
+	background-color: lightgrey;
+	background-image: url('/visual/unitsheet.png');
+	box-sizing: content-box;
+	background-clip: content-box;
+	background-origin: content-box;
+}
+
+.unit-sniffer  { background-position:  0px   0px; }
+.unit-peeper   { background-position:  0px -24px; }
+.unit-bouncer  { background-position:  0px -48px; }
+.unit-enforcer { background-position:  0px -72px; }
+.unit-seeker   { background-position: 72px   0px; }
+.unit-cleaner  { background-position: 72px -24px; }
+.unit-carrier  { background-position: 72px 48px; }

@@ -1,40 +1,30 @@
 
 define(
-	['shared/message', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
-	function(message, graphic, button, text, canvas) {
+	['shared/message', 'shared/actions/move', 'client/ui/graphic', 'client/ui/text', 'client/canvas'],
+	function(MESSAGE, MOVE, GRAPHIC, TEXT, CANVAS) {
 		var root = {};
 
 		var self = {
 			path: [],
-			origin: null,
-			graphic: new graphic(canvas.image.cursor, {
-				x: 0, y: 0,
-				w: config.hex.scale,
-				h: config.hex.scale,
-				visible: false,
-			}),
-			tooltip: null,
+			selected_hex: null,
 		};
-		
-		self.graphic.sprite('neutral');
 
-		self.tooltip = new text("", {
-			x: 0,
-			y: self.graphic.h,
-			w: self.graphic.w,
-			visible: false,
-		});
+		HOOKS.on('hex:mouse_over', function(event) {
+			var local_unit = this.unit(this.parent_state.meta.local_player);
 
-		self.tooltip.css({
-			'text-align': 'center',
-			'text-shadow': '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
-		});
+			// TODO: Refactor this temporary code.
+			var units = this.units();
+			var unit_list = [];
+			for (var p in units) {
+				for (var u in units[p]) {
+					unit_list.push(units[p].key);
+				}
+			}
 
-		self.graphic.attach(self.tooltip);
-		hooks.on('hex:mouse_over', function(event) {
-			var local_unit = this.unit(this.parent_state.meta.local_player_id);
+			document.getElementById('tooltip').innerHTML = "<b>position</b>: "+this.q+", "+this.r+"<br><b>units</b>: ["+unit_list.join(', ')+"]"+"<br><b>type</b>: "+(this.type != null ? this.type.key : "null");
+			// END temporary code.
 
-			if (self.origin != null) {
+			if (self.selected_hex != null) {
 				if (self.path.length > 1) {
 					for (var i = self.path.length - 2; i >= 0; i--) {
 						var hex1 = self.path[i];
@@ -45,21 +35,31 @@ define(
 					}
 				}
 
-				self.path = null;
-
-				debug.temp('unit', self.origin.unit(this.parent_state.meta.local_player_id));
-				var limit = self.origin.unit(this.parent_state.meta.local_player_id).type().move;
-
-				if (this.parent_state.distance(self.origin.q, self.origin.r, this.q, this.r) <= limit) {
-					self.path = this.parent_state.path(self.origin.q, self.origin.r, this.q, this.r, limit);
+				if (!MOVE.targets[0].test(this, GAME_STATE.meta.local_player)) {
+					self.path = [];
+					this.graphic.hover = {
+						sprite: 'negative',
+						text: MOVE.targets[0].error,
+					};
+					return;
 				}
 
-				debug.temp('path to', this.q, this.r, 'from', self.origin.q, self.origin.r, self.path);
+				self.path = null;
+
+				var limit = self.selected_hex.unit(this.parent_state.meta.local_player).type.move;
+
+				if (this.parent_state.distance(self.selected_hex.q, self.selected_hex.r, this.q, this.r) <= limit) {
+					self.path = this.parent_state.path(self.selected_hex.q, self.selected_hex.r, this.q, this.r, limit);
+				}
+
+				DEBUG.temp('path to', this.q, this.r, 'from', self.selected_hex.q, self.selected_hex.r, self.path);
 
 				if (self.path == null) {
 					self.path = [];
-					self.graphic.sprite('negative');
-					self.tooltip.text = "too far";
+					this.graphic.hover = {
+						sprite: 'negative',
+						text: "too far",
+					};
 				} else if (self.path.length > 1) {
 					for (var i = self.path.length - 2; i >= 0; i--) {
 						var hex1 = self.path[i];
@@ -69,51 +69,70 @@ define(
 						edge.graphic.sprite('hover');
 					}
 
-					self.graphic.sprite('positive');
-					self.tooltip.text = "move";
+					this.graphic.hover = {
+						sprite: 'positive',
+						text: "move",
+					};
 				} else {
-					self.graphic.sprite('neutral');
-					self.tooltip.text = false;
+					this.graphic.hover = true;
 				}
-			} else if (local_unit != null) {
-				self.tooltip.text = local_unit.type().key;
 			} else {
-				self.tooltip.text = false;
+				this.graphic.hover = true;
+			}
+		});
+
+		HOOKS.on('hex:mouse_out', function() {
+			this.graphic.hover = false;
+		});
+
+		HOOKS.on('action:send', function(data) {
+			//UTIL.require_properties(['player_id', 'unit_id', 'positions']);
+			var hex;
+
+			for (var i = data.positions.length - 1; i >= 0; i--) {
+				hex = GAME_STATE.hex(data.positions[i][0], data.positions[i][1]);
+				hex.graphic.display = {
+					sprite: 'local',
+					text: this.text.future,
+				};
 			}
 
-			self.graphic.attr({
-				x: this.graphic.x,
-				y: this.graphic.y,
-				visible: true,
-			});
+			hex = GAME_STATE.player(data.player_id).unit(data.unit_id).hex;
 
-			// TODO: Refactor this temporary code.
-			document.getElementById('tooltip').innerHTML = "<b>position</b>: "+this.q+", "+this.r+"<br><b>units</b>: "+JSON.stringify(Object.keys(this.units()), null, 2);
+			if (hex != null) {
+				if (data.positions.length > 0) {
+					hex.graphic.display = {
+						sprite: 'local',
+						text: 'source',
+					};
+				} else {
+					hex.graphic.display = {
+						sprite: 'local',
+						text: this.text.future,
+					};
+				}
+			}
+
+			return data;
 		});
 
-		hooks.on('hex:mouse_out', function() {
-			self.graphic.visible = false;
-			self.tooltip.text = false;
-		});
-
-		hooks.on('hex:mouse_down', function(event) {
-			var local_player = this.parent_state.player(this.parent_state.meta.local_player_id);
-			var local_unit = this.unit(local_player.id);
+		HOOKS.on('hex:mouse_down', function(event) {
+			var local_player = this.parent_state.meta.local_player;
+			var local_unit = this.units(local_player.id);
 
 			if (event.mouseButton === Crafty.mouseButtons.LEFT && local_player.active) {
 				// TODO: Allow dragging for other things as well.
 				if (local_unit != null) {
-					self.origin = this;
+					self.selected_hex = this;
 				}
 			}
 		});
 
-		hooks.on('hex:mouse_up', function(event) {
-			if (event.mouseButton === Crafty.mouseButtons.LEFT && self.origin != null) {
-				debug.temp('end drag');
+		HOOKS.on('hex:mouse_up', function(event) {
+			if (event.mouseButton === Crafty.mouseButtons.LEFT && self.selected_hex != null) {
+				DEBUG.temp('end drag');
 				
-				self.graphic.sprite('neutral');
-				self.tooltip.text = false;
+				this.graphic.hover = false;
 
 				if (self.path.length > 1) {
 					for (var i = self.path.length - 2; i >= 0; i--) {
@@ -125,26 +144,26 @@ define(
 					}
 
 					// TODO: Move this to somewhere more appropriate.
-					if (self.origin != null) {
-						var player_id = this.parent_state.meta.local_player_id;
-						var unit = self.origin.unit(player_id);
+					if (self.selected_hex != null) {
+						var player_id = this.parent_state.meta.local_player.id;
+						var unit = self.selected_hex.unit(player_id);
 
-						debug.temp('unit', unit);
 						if (unit != null) {
-							message.send('update', {
+							var data = {
 								type: 'action',
 								action: 'move',
-								player: player_id,
-								unit: unit.id,
-								q: this.q,
-								r: this.r,
-							});
+								player_id: player_id,
+								unit_id: unit.id,
+								positions: [[this.q, this.r]],
+							};
+
+							MESSAGE.send('update', HOOKS.filter('action:send', MOVE, data));
 						}
 					}
 				}
 
 				self.path = [];
-				self.origin = null;
+				self.selected_hex = null;
 			}
 		});
 

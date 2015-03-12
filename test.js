@@ -1,26 +1,44 @@
-var message = require("./shared/message");
-var debug = require("./server/debug");
+var requirejs = require('requirejs');
 
-var msg = new message.instance();
-msg.type = 'chat';
+requirejs.config({
+	baseUrl: __dirname+'/scripts/',
+	nodeRequire: require,
+});
 
+requirejs(['global/config', 'global/debug', 'global/hooks']);
 
-msg.data = [{
-	q: 1,
-	r: 2,
-	type: 'hex',
-	player: 0
-}, {
-	type: 'hex',
-	q: 6,
-	r: 3,
-	player: 0
-}];
+requirejs(
+	['shared/message'],
+	function(MESSAGE) {
+		DEBUG.temp('--------------------------', 'RUNNING TESTS', '--------------------------');
 
-msg.encode();
-debug.dispatch('Raw\n', msg.binary.buffer);
+		function test_encoding(data) {
+			var encoded = MESSAGE.encode('chat', data);
+			var decoded = MESSAGE.decode(encoded.binary);
+			DEBUG.temp('CONVERSION\n', JSON.stringify(data), '\n', JSON.stringify(decoded.data));
+		}
 
-var decoder = new message.instance();
-decoder.binary = msg.binary;
-decoder.decode();
-debug.dispatch("Message Integrity:", (msg.data == decoder.data) ? "Good" : "Bad", "->\n", decoder.data);
+		test_encoding([{
+			type: 'hex',
+			player_id: 0,
+			position: [6, 3],
+		}, {
+			type: 'hex',
+			position: [2, 4],
+			units: {
+				0: [1, 4],
+				3: [0],
+			},
+		}]);
+
+		test_encoding([{
+			type: 'hex',
+			player_id: 0,
+			position: [6, 3],
+		}, {
+			type: 'hex',
+			edges: ['northeast', 'southwest', 'south'],
+		}]);
+	}
+);
+

@@ -1,45 +1,47 @@
 
-config = {};
+CONFIG = {};
 
 // ===== GENERAL ===== //
-config.is_server = (typeof window === 'undefined');
+CONFIG.is_client = (typeof window !== 'undefined');
+CONFIG.score_goal = 3;
+CONFIG.default_player_count = 2;
 
 // ===== PORT ===== //
-config.port = {
-	http: 3000,
-	socket: 3001,
+CONFIG.port = {
+	http: process.env.PORT || 3000,
+	socket: process.env.PORT || 3001,
 };
 
 // ===== CANVAS ===== //
-config.canvas = {
-	width: 600,
+CONFIG.canvas = {
+	width: 800,
 	height: 600,
 };
 
 // ===== HEX ===== //
-config.hex = {
+CONFIG.hex = {
 	size: 30,
 };
 
-config.hex.width = 1.5 * config.hex.size;
-config.hex.height = Math.sqrt(3) * config.hex.size;
-config.hex.scale = 100 * config.hex.height / 80;
+CONFIG.hex.width = 1.5 * CONFIG.hex.size;
+CONFIG.hex.height = Math.sqrt(3) * CONFIG.hex.size;
+CONFIG.hex.scale = 100 * CONFIG.hex.height / 80;
 
 // ===== EDGE ===== //
-config.edge = {
+CONFIG.edge = {
 	offset: {
-		x: config.hex.width - 5,
-		y: config.hex.height - 30,
+		x: CONFIG.hex.width - 5,
+		y: CONFIG.hex.height - 30,
 	},
 };
 
 // ===== BOARD ===== //
-config.board = {
+CONFIG.board = {
 	width: 12,
 	height: 8,
 };
 
-config.board.offset = {
-	x: (config.canvas.width - (config.board.width/2 * 3 * config.hex.size)) / 2,
+CONFIG.board.offset = {
+	x: (CONFIG.canvas.width - (CONFIG.board.width/2 * 3 * CONFIG.hex.size)) / 2,
 	y: 60
 };

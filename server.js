@@ -9,7 +9,7 @@ requirejs(['global/config', 'global/debug', 'global/hooks']);
 
 requirejs(
 	['http', 'fs', 'path', 'url'],
-	function(http, fs, path, url) {
+	function(HTTP, FS, PATH, URL) {
 		function respond(type, response, param, content_type) {
 			switch (type) {
 				case 404:
@@ -35,8 +35,8 @@ requirejs(
 			response.end();
 		}
 
-		http.createServer(function(request, response) {
-			var uri = url.parse(request.url).pathname;
+		HTTP.createServer(function(request, response) {
+			var uri = URL.parse(request.url).pathname;
 			
 			if (uri.indexOf("server") > -1) {
 				// Don't allow access to server files.
@@ -44,17 +44,17 @@ requirejs(
 				return;
 			}
 			
-			var filename = path.join(process.cwd(), "/", uri);
+			var filename = PATH.join(process.cwd(), "/", uri);
 			
-			debug.dispatch("Request received. ["+uri+"]");
+			DEBUG.dispatch("Request received. ["+uri+"]");
 			
-			fs.exists(filename, function(exists) {
+			FS.exists(filename, function(exists) {
 				if (exists) {
-					if (fs.statSync(filename).isDirectory()) {
+					if (FS.statSync(filename).isDirectory()) {
 						filename += 'client.html';
 					}
 
-					fs.readFile(filename, "binary", function(error, file) {
+					FS.readFile(filename, "binary", function(error, file) {
 						if (error) {
 							respond(500, response, error);
 						} else {
@@ -74,46 +74,57 @@ requirejs(
 					respond(404, response);
 				}
 			});
-		}).listen(config.port.http);
+		}).listen(CONFIG.port.http);
 
-		debug.dispatch("Launched HTTP Server on port", config.port.http);
+		DEBUG.dispatch("Launched HTTP Server on port", CONFIG.port.http);
 	}
 );
 
 requirejs(
 	['server/dispatch', 'server/game', 'shared/state', 'node-uuid'],
-	function(dispatch, game, state, uuid) {
-		dispatch.start(config.port.socket);
+	function(DISPATCH, GAME, STATE, UUID) {
+		DISPATCH.start(CONFIG.port.socket);
 
 		var clients = {};
 		var games = {};
 
 		// TODO: Change this set up.
-		var game_id = uuid.v4();
-		var game_state = hooks.trigger('state:new', new state(game_id));
+		var game_id = UUID.v4();
+		var game_state = HOOKS.trigger('state:new', new STATE(game_id));
 		games[game_id] = game_state;
 
-		hooks.on('dispatch:connection', function(client) {
-			debug.game("Received connection with socket id", client.id);
+		var player_increment = 0;
+
+		HOOKS.on('dispatch:connection', function(client) {
+			DEBUG.game("Received connection with socket id", client.id);
 			
 			// TODO: Assign a player id.
-			var user_id = uuid.v4();
-			var player_id = game_state.new_player(user_id);
-			client.game_id = game_state.id;
-			client.player_id = player_id;
-			game_state.player(player_id).client = client;
-			game.reset(game_state, player_id);
+			var user_id = UUID.v4();
+			var player_id = player_increment;
+			player_increment++;
 
-			debug.game("User has been assigned id #"+player_id+" and has joined game \'"+game_state.id+"\'");
+			var player = game_state.player(player_id);
+
+			if (player != null) {
+				client.game_id = game_state.id;
+				client.player_id = player_id;
+				player.user_id = user_id;
+				player.client = client;
+				GAME.reset(game_state, player_id);
+
+				DEBUG.game("User has been assigned id #"+player_id+" and has joined game \'"+game_state.id+"\'");
+			} else {
+				DEBUG.game("A spectator has joined game \'"+game_state.id+"\'");
+			}
 		});
 
-		hooks.on('dispatch:update', function(args) {
+		HOOKS.on('dispatch:update', function(args) {
 			args.state = games[args.client.game_id];
-			debug.temp("sending game:"+args.data.type, args.data);
-			hooks.trigger('game:'+args.data.type, null, args);
+			DEBUG.temp("sending game:"+args.data.type, args.data);
+			HOOKS.trigger('game:'+args.data.type, null, args);
 		});
 
-		hooks.on('dispatch:chat', function(args) {
+		HOOKS.on('dispatch:chat', function(args) {
 			// TODO: Unimplemented
 		});
 	}

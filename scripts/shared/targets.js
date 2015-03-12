@@ -2,26 +2,16 @@
 define(
 	function() {
 		var root = {
-			hex: function(state, data, player) {
-				return data.hasOwnProperty('q') && data.hasOwnProperty('r')
-					&& state.in_bounds(data.q, data.r);
+			hex: function(hex, player) {
+				return hex != null;
 			},
-			empty: function(state, data, player) {
-				return this.hex(data, player)
-					&& state.hex(data.q, data.r).unit() == null;
+			vacant: function(hex, player) {
+				return root.hex(hex, player)
+					&& hex.unit(player.id) == null;
 			},
-			unit: function(state, data, player) {
-				return this.hex(data, player)
-					&& state.hex(data.q, data.r).unit() != null;
-			},
-			own: function(state, data, player) {
-				return this.unit(data, player)
-					&& state.hex(data.q, data.r).unit(player) != null;
-			},
-			ally: function(state, data, player) {
-				// TODO: Properly implement this.
-				return this.unit(data, player)
-					&& state.hex(data.q, data.r).unit(player) != null;
+			spawnzone: function(hex, player) {
+				return root.hex(hex, player)
+					&& hex.type != null && hex.type.allow_spawn && (hex.owner == null || hex.owner === player);
 			},
 		};
 

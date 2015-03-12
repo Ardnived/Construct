@@ -1,18 +1,18 @@
 
 function on_open() {
-	debug.dispatch("Connection Open");
+	DEBUG.dispatch("Connection Open");
 };
 
 function on_close() {
-	debug.dispatch("Connection Closed");
+	DEBUG.dispatch("Connection Closed");
 };
 
 function on_error(error) {
-	debug.error("Dispatch "+error);
+	DEBUG.error("Dispatch "+error);
 };
 
 function on_message(stream, meta) {
-	debug.dispatch("Began message.", meta);
+	DEBUG.dispatch("Began message.", meta);
 	
 	var client = this;
 	var buffer = new Buffer(meta.size);
@@ -24,14 +24,14 @@ function on_message(stream, meta) {
 	});
 
 	stream.on('end', function() {
-		debug.dispatch("Received message", buffer.readInt8(0), buffer.readUInt8(0), buffer);
+		DEBUG.dispatch("Received message", buffer.readInt8(0), buffer.readUInt8(0), buffer);
 
 		requirejs(
 			['shared/message'],
 			function(message) {
 				var msg = message.decode(buffer);
 
-				hooks.trigger('dispatch:'+msg.type, null, {
+				HOOKS.trigger('dispatch:'+msg.type, null, {
 					client: client,
 					data: msg.data,
 				});
@@ -42,26 +42,26 @@ function on_message(stream, meta) {
 
 define(
 	['binaryjs'],
-	function(binaryjs) {
+	function(BINARYJS) {
 		return {
 			server: null,
 
 			start: function(port) {
-				this.server = binaryjs.BinaryServer({ port: port });
+				this.server = BINARYJS.BinaryServer({ port: port });
 				this.server.on("error", on_error);
 
 				this.server.on("connection", function(connection) {
-					debug.dispatch("Incoming connection.");
+					DEBUG.dispatch("Incoming connection.");
 
 					connection.on("open", on_open);
 					connection.on("close", on_close);
 					connection.on("error", on_error);
 					connection.on("stream", on_message);
 
-					hooks.trigger("dispatch:connection", null, connection);
+					HOOKS.trigger("dispatch:connection", null, connection);
 				});
 				
-				debug.dispatch("Waiting for incoming connections...");
+				DEBUG.dispatch("Waiting for incoming connections...");
 			},
 
 			send: function(binary, length, targets) {
@@ -77,7 +77,7 @@ define(
 				}
 
 				for (var id in targets) {
-					debug.dispatch("Sending to client #"+id);
+					DEBUG.dispatch("Sending to client #"+id);
 					targets[id].send(buffer);
 				}
 			},

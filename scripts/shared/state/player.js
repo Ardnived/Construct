@@ -1,32 +1,35 @@
 
 define(
-	['shared/state/unit'],
-	function(unit) {
-		var player = function(parent_state, id) {
-			this.parent_state = parent_state;
-			this.id = id;
-			this._active = true; // TODO: Revaluate when this value should be set. Maybe null = spectator.
-			this._units = [];
+	['shared/state/unit', 'shared/round'],
+	function(UNIT, ROUND) {
+		var root = {
+			create: function(parent_state, index) {
+				return HOOKS.trigger('player:new', new player(parent_state, index));
+			},
 
-			// TODO: Find a better place to set this.
-			this.unit(0).type('sniffer');
-			this.unit(1).type('bouncer');
-			this.unit(2).type('sniffer');
+			key: function(index) {
+				return 'p'+index;
+			},
 		};
 
-		player.prototype = {
-			unit: function(id) {
-				if (!(id in this._units)) {
-					var player_id = this.id;
-					this._units[id] = hooks.trigger('unit:new', new unit(this.parent_state, id, player_id));
-				}
-				
-				return this._units[id];
-			},
+		var player = function(parent_state, index) {
+			this.parent_state = parent_state;
+			this.id = index;
+			this.team = this.parent_state.team(index); // TODO: Implement teams
+			this.playing = true; // Indicates whether this player is still playing. False indicates that they have lost.
+			this._active = true; // TODO: Revaluate when this value should be set. Maybe null = spectator.
+			this._points = 0;
+			this._units = [];
+			this._visibility = {};
 
-			units: function() {
-				return this._units;
-			},
+			// TODO: Find a better place to set this.
+			//this.unit(0).type = 'sniffer';
+			this.unit(1).type = 'peeper';
+			this.unit(2).type = 'bouncer';
+			//this.unit(3).type = 'enforcer';
+			//this.unit(4).type = 'seeker';
+			this.unit(5).type = 'cleaner';
+			this.unit(6).type = 'carrier';
 		};
 
 		Object.defineProperty(player.prototype, 'active', {
@@ -36,40 +39,54 @@ define(
 			set: function(new_value) {
 				if (this._active != new_value) {
 					this._active = new_value;
+					HOOKS.trigger('player:change_active', this);
 				}
-
-				hooks.trigger('player:change_active', this);
 			},
 		});
 
-		return player;
-	}
-);
+		Object.defineProperty(player.prototype, 'key', {
+			get: function() {
+				return root.key(this.id);
+			},
+			set: undefined,
+		});
 
+		Object.defineProperty(player.prototype, 'points', {
+			get: function() {
+				return this._points;
+			},
+			set: function(new_value) {
+				if (new_value != this._points) {
+					var old_points = this._points;
+					this._points = new_value;
 
-hooks.on('player:update', function(data) {
-	this.active = data.active;
+					if (this._points >= CONFIG.score_goal) {
+						for (var i = this.parent_state.meta.player_count - 1; i >= 0; i--) {
+							this.parent_state.player(i).playing = false;
+						}
 
-}, hooks.PRIORITY_CRITICAL);
+						this.playing = true;
+					}
 
-hooks.on('player:change_active', function(data) {
-	if (this.active == false) {
-		// TODO: Make this more efficient?
+					HOOKS.trigger('player:change_points', this, old_points);
+				}
+			},
+		});
 
-		var round_ended = true;
-		for (var i = this.parent_state.meta.player_count - 1; i >= 0; i--) {
-			if (this.parent_state.player(i).active) {
-				round_ended = false;
-				break;
+		player.prototype.unit = function(unit_index) {
+			var key = UNIT.key(unit_index, this.id);
+			
+			if (!(key in this._units)) {
+				this._units[key] = UNIT.create(this.parent_state, unit_index, this);
 			}
+			
+			return this._units[key];
 		};
 
-		debug.temp('round ended:', round_ended, '.');
+		player.prototype.units = function() {
+			return this._units;
+		};
 
-		if (round_ended) {
-			for (var i = this.parent_state.meta.player_count - 1; i >= 0; i--) {
-				this.parent_state.player(i).active = true;
-			};
-		}
+		return root;
 	}
-});
+);

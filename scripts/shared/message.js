@@ -1,13 +1,13 @@
 
-var dispatch_path = 'client/dispatch';
+var dispatch_path = 'server/dispatch';
 
-if (config.is_server) {
-	dispatch_path = 'server/dispatch';
+if (CONFIG.is_client) {
+	dispatch_path = 'client/dispatch';
 }
 
 define(
-	['shared/actions/all', 'shared/units/all'],
-	function(actions, units) {
+	['shared/actions/all', 'shared/units/all', 'shared/structs/all', 'shared/directions'],
+	function(ACTIONS, UNITS, STRUCTS, DIRECTIONS) {
 		var RELATION = 127;
 		var JSON_OPEN = 126;
 		var JSON_CLOSE = 125;
@@ -18,23 +18,95 @@ define(
 		var BUFFER_SIZE = 16;
 
 		var text = {
+			// Defeat
+			"100": "Defeat",
+			// Victory
+			"200": "Victory",
+			// Approved
+			"300": "Approved",
+			"301": "Execute locally",
+			// Rejected, not now.
 			"400": "It is not your turn.",
 			"401": "Prohibited hex.",
 			"404": "Not found.",
-			"500": "That action would be considered cheating",
-			"501": "You cannot act on another player's behalf!",
+			// Rejected, illegal move.
+			"500": "You are not a player.",
+			"501": "That action would be considered cheating.",
+			"502": "You cannot act on another player's behalf!",
 		};
 
-		var keys = ['type', 'message', 'q', 'r', 'unit', 'player', 'active', 'action', 'number', 'unit_type'];
+		var keys = [
+			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', // Integers up to 10 can be used as keys.
+			'type', 'unit_id', 'player_id', 'action',
+			'position', 'positions', 'units', 'edges',
+			'message',
+			'active', 'number',
+			'unit_type', 'hex_type',
+		];
 
 		var values = {
 			type: ['action', 'meta', 'hex', 'edge', 'player', 'unit'],
-			action: Object.keys(actions),
+			action: Object.keys(ACTIONS),
 			message: Object.keys(text),
-			unit_type: Object.keys(units),
+			unit_type: Object.keys(UNITS),
+			hex_type: Object.keys(STRUCTS),
+			edges: DIRECTIONS.keys,
 		};
 
-		var types = ['default', 'update', 'response', 'chat'];
+		var types = ['default', 'update', 'gameover', 'chat', 'rejected'];
+
+		var root = {
+			send: function(type, data, targets) {
+				requirejs(
+					[dispatch_path], 
+					function(dispatch) {
+						if (typeof type === 'undefined') {
+							DEBUG.error("Cannot dispatch message with undefined type.");
+						}
+
+						if (typeof data === 'undefined') {
+							DEBUG.error("Cannot dispatch message with no data.");
+						}
+
+						var msg = root.encode(type, data);
+
+						DEBUG.dispatch("Sending", type, data, "with length", msg.blocks);
+						dispatch.send(msg.binary, msg.length, targets);
+				});	
+			},
+
+			encode: function(type, data) {
+				var msg = new message();
+				msg.type = type;
+				msg.data = data;
+				msg.encode();
+
+				return {
+					binary: msg.binary,
+					length: msg.length,
+					blocks: (msg.data instanceof Array) ? msg.data.length : 1,
+				}
+			},
+
+			decode: function(binary) {
+				var buffer = new ArrayBuffer(binary.length);
+			    var view = new Int8Array(buffer);
+			    for (var i = 0; i < binary.length; ++i) {
+			        view[i] = binary[i];
+			    }
+
+				var msg = new message();
+				msg.binary = view;
+				msg.decode();
+				
+				return {
+					type: msg.type,
+					data: msg.data,
+				};
+			},
+
+			text: text,
+		};
 
 		function message(type) {
 			this.type = typeof type !== 'undefined' ? type : types[0];
@@ -52,7 +124,7 @@ define(
 				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
 
 				if (this.type == null) {
-					debug.error("Encoding failed: Message type has not been set.");
+					DEBUG.error("Encoding failed: Message type has not been set.");
 					return false;
 				}
 
@@ -67,7 +139,7 @@ define(
 				dictionary = keys;
 			}
 
-			debug.parse("encoding", toString.call(data), data);
+			DEBUG.parse("encoding", toString.call(data), data);
 
 			if (toString.call(data) === '[object Array]') {
 				this.write(ARRAY_OPEN);
@@ -87,7 +159,7 @@ define(
 				for (var key in data) {
 					this.write(RELATION);
 					this.write(key, dictionary);
-					debug.parse("encode data for "+key);
+					DEBUG.parse("encode data for "+key);
 
 					if (typeof data[key] === 'undefined' || data[key] == null) {
 						this.write(NULL);
@@ -111,11 +183,11 @@ define(
 		};
 
 		message.prototype.write = function(value, dictionary) {
-			//debug.parse("write", value, "to", this.length);
-			var query = value; //TODO: remove this debug code.
+			//DEBUG.parse("write", value, "to", this.length);
+			var query = value; //TODO: remove this DEBUG code.
 
 			if (this.length >= this.binary.length) {
-				//debug.parse("enlarge buffer to", this.binary.length + BUFFER_SIZE);
+				//DEBUG.parse("enlarge buffer to", this.binary.length + BUFFER_SIZE);
 				var newbuffer = new ArrayBuffer(this.binary.length + BUFFER_SIZE);
 				var newbinary = new Int8Array(newbuffer);
 				newbinary.set(this.binary);
@@ -126,8 +198,8 @@ define(
 				value = dictionary.indexOf(value);
 
 				if (value == -1) {
-					debug.error("Unrecognized key on encode:", query, this.data);
-					debug.parse(dictionary);
+					DEBUG.fatal("Unrecognized key on encode:", query, this.data);
+					DEBUG.parse(dictionary);
 					return;
 				}
 			}
@@ -138,7 +210,7 @@ define(
 
 		message.prototype.decode = function() {
 			this.data = null;
-			var jsonkey = null;
+			var jsonkeys = [];
 			var key = null;
 			var mode = 'value';
 
@@ -146,84 +218,91 @@ define(
 			var dicttree = [];
 			var depth = -1;
 
-			debug.parse("received", this.binary);
+			DEBUG.parse("received", this.binary);
 			outerloop:
 			for (var index in this.binary) {
 				var value;
 
 				if (index == 0) {
 					this.type = this.read(this.binary[index], types);
-					debug.parse("type is", this.type);
+					DEBUG.parse("type is", this.type);
 					continue;
 				} else {
 					value = this.read(this.binary[index]);
 				}
 
-				debug.parse("parse", this.binary[index], "=", value);
-
 				switch (value) {
 					case 'JSON_OPEN':
 						depth++;
 						jsontree[depth] = {};
-						jsonkey = key;
+						jsonkeys.push(key);
 						key = null;
 						mode = 'value';
-						debug.parse("json open ", depth);
+						DEBUG.parse("json open ", depth);
 						break;
 					case 'ARRAY_OPEN':
 						depth++;
 						jsontree[depth] = [];
-						jsonkey = key;
+						jsonkeys.push(key);
 						key = null;
 						mode = 'value';
-						debug.parse("array open", depth);
+						DEBUG.parse("array open", depth);
 						break;
 					case 'CLOSE':
 						if (depth == 0)
 							break outerloop;
 
+						var jsonkey = jsonkeys.pop();
+						DEBUG.parse("Closing object with key", "'"+jsonkey+"'", 'of', jsonkeys);
+
 						if (jsonkey != null) {
-							jsontree[depth-1][jsonkey] = jsontree[depth];
-							jsonkey = null;
+							jsontree[depth - 1][jsonkey] = jsontree[depth];
 						} else {
+							DEBUG.parse("attempting to push", depth, 'on to', jsontree);
 							jsontree[depth - 1].push(jsontree[depth]);
 						}
 						
 						delete jsontree[depth];
 						depth--;
-						debug.parse("close to depth", depth);
+						DEBUG.parse("closing object at depth", depth);
 						break;
 					case 'RELATION':
 						mode = 'key';
-						debug.parse("mode: key");
+						DEBUG.parse("mode: key");
 						break;
 					default:
 						switch (mode) {
 							case 'key':
 								key = this.read(this.binary[index], keys);
 								mode = 'keyvalue';
-								debug.parse("mode: keyvalue");
+								DEBUG.parse("mode: keyvalue");
 								break;
 							case 'keyvalue':
-								if ( typeof values[key] != 'undefined') {
+								if (typeof values[key] !== 'undefined') {
 									value = this.read(this.binary[index], values[key]);
 								}
 
 								jsontree[depth][key] = value;
 								key = null;
 								mode = 'value';
-								debug.parse("mode: value");
+								DEBUG.parse("mode: value");
 								break;
 							case 'value':
+								var parsekey = jsonkeys[jsonkeys.length-1];
+								if (typeof values[parsekey] !== 'undefined') {
+									value = this.read(this.binary[index], values[parsekey]);
+								}
+
 								jsontree[depth].push(value);
 								break;
 						}
 				}
 
-				debug.parse("->", jsontree);
+				DEBUG.parse("parse", this.binary[index], "=", value);
+				DEBUG.parse("->", depth, jsontree);
 			}
 
-			debug.parse("-->", jsontree);
+			DEBUG.parse("-->", depth, jsontree);
 			this.data = jsontree[0];
 		};
 
@@ -243,60 +322,20 @@ define(
 			}
 
 			// No lookup table, therefore return the raw number.
-			if ( typeof dictionary === 'undefined') {
-				debug.parse("Returning raw.");
+			if (typeof dictionary === 'undefined') {
+				DEBUG.parse("Returning raw.", index);
 				return index;
 			}
 
 			var result = dictionary[index];
-			if ( typeof result === 'undefined') {
-				debug.error("Unrecognized value on decode:", index, "Searched: [" + dictionary + "]");
+			if (typeof result === 'undefined') {
+				DEBUG.error("Unrecognized value on decode:", index, "Searched: [" + dictionary + "]");
 			} else {
-				debug.parse("Returning", index, "=", result);
+				DEBUG.parse("Returning", index, "=", result);
 				return result;
 			}
 		};
 
-		return {
-			send: function(type, data, targets) {
-				requirejs(
-					[dispatch_path], 
-					function(dispatch) {
-						if (typeof type === 'undefined') {
-							debug.error("Cannot dispatch message with undefined type.");
-						}
-
-						if (typeof data === 'undefined') {
-							debug.error("Cannot dispatch message with no data.");
-						}
-
-						var msg = new message();
-						msg.type = type;
-						msg.data = data;
-						msg.encode();
-
-						debug.dispatch("Sending", msg.type, "with length", msg.data.length);
-						dispatch.send(msg.binary, msg.length, targets);
-				});
-				
-			},
-
-			decode: function(binary) {
-				var buffer = new ArrayBuffer(binary.length);
-			    var view = new Int8Array(buffer);
-			    for (var i = 0; i < binary.length; ++i) {
-			        view[i] = binary[i];
-			    }
-
-				var msg = new message();
-				msg.binary = view;
-				msg.decode();
-				
-				return {
-					type: msg.type,
-					data: msg.data,
-				};
-			},
-		};
+		return root;
 	}
 );

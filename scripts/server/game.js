@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'shared/directions', 'shared/actions/all'],
-	function(message, directions, actions_list) {
+	['shared/message', 'shared/directions', 'shared/state/team', 'server/actions_handler'],
+	function(MESSAGE, DIRECTIONS, TEAM) {
 		var object = {
 
 			reset: function(state, player_id) {
@@ -12,21 +12,35 @@ define(
 				// otherwise when the player gets the data they won't know when a player id refers to themselves.
 				data.push({
 					type: 'meta',
-					player: player_id,
+					player_id: player_id,
 					number: state.meta.player_count,
 					// TODO: Send whatever units this player has.
 				});
 				// ===== ===== ===== =====
+
+				// Add all the hex data.
+				var hexes = state.hexes();
+				for (var key in hexes) {
+					var hex = hexes[key];
+
+					if (hex.type != null) {
+						data.push({
+							type: 'hex',
+							position: [hex.q, hex.r],
+							hex_type: hex.type.key,
+						});
+					}
+				}
 
 				// Add data for all players.
 				var players = state.players();
 				for (var i in players) {
 					var player = players[i];
 
-					if (player.active) {
+					if (!player.active) {
 						data.push({
 							type: 'player',
-							player: player.id,
+							player_id: player.id,
 							active: player.active,
 						});
 					}
@@ -37,14 +51,13 @@ define(
 
 						var dat = {
 							type: 'unit',
-							unit: unit.id,
-							player: unit.owner,
-							unit_type: unit.type().key,
+							unit_id: unit.id,
+							player_id: unit.owner.id,
+							unit_type: unit.type.key,
 						};
 
-						if (unit.q != null && unit.r != null) {
-							dat.q = unit.q;
-							dat.r = unit.r;
+						if (unit.position != null) {
+							dat.position = [unit.position.q, unit.position.r];
 						}
 
 						data.push(dat);
@@ -58,8 +71,10 @@ define(
 
 					var dat = {
 						type: 'edge',
-						q: [edge.q1, edge.q2],
-						r: [edge.r1, edge.r2],
+						positions: [
+							[edge.q1, edge.r1],
+							[edge.q2, edge.r2],
+						],
 						active: edge.active,
 					};
 
@@ -73,66 +88,13 @@ define(
 				// Check if the reply has contents.
 				if (data.length > 0) {
 					// If so, send the update back to the requestor.
-					message.send('update', data, state.player(player_id).client);
+					MESSAGE.send('update', data, state.player(player_id).client);
 				}
 			},
 		};
 
-		hooks.on('game:action', function(args) {
-			var request = args.data;
-			var state = args.state;
-
-			if (!(request.player in state.players())) {
-				debug.error("Non-existant player", player.id, "tried to act.");
-				return;
-			}
-
-			var player = state.player(request.player);
-
-			if (player.active == false) {
-				debug.error("Player", player.id, "tried to act when it was not their turn.");
-				return;
-			}
-
-			var action = actions_list[request.action];
-
-			/*if (typeof request.q === 'number') {
-				var target_q = [request.q];
-				var target_r = [request.r];
-			} else {
-				var target_q = request.q;
-				var target_r = request.r;
-			}
-
-			for (var i = action.targets.length - 1; i >= 0; i--) {
-				var is_valid = action.targets[i];
-
-				if (!is_valid(state, { q: target_q[i], r: target_r[i] }, request.player)) {
-					debug.error("Player", player.id, "tried to use an action on an invalid target.");
-					return;
-				}
-			};*/
-
-			var update = [];
-			update = update.concat(action.execute(state, request));
-
-			hooks.trigger('player:update', player, {
-				active: false,
-			});
-
-			update.push({
-				type: 'player',
-				player: request.player,
-				active: false,
-			});
-
-			// TODO: Only push updates to all clients when everyone is ready.
-
-			message.send('update', update);
-		});
-
-		hooks.on('state:new', function() {
-			debug.game("Generating new game.");
+		HOOKS.on('state:new', function() {
+			DEBUG.game("Generating new game.");
 			var board_density = 0.5;
 			var mirrored = false;
 			var qMax = this.max_q();
@@ -140,8 +102,12 @@ define(
 			this.meta.player_count = 2; // TODO: Define thie elsewhere.
 
 			if (mirrored) {
-				qMax = Math.floor(config.board.width / 2);
+				qMax = Math.floor(CONFIG.board.width / 2);
 			}
+
+			var spawn_chance = 0.035;
+			var relay_chance = 0.025;
+			var access_chance = 0.03;
 
 			for (var qN = this.min_q(); qN <= qMax; qN++) {
 				var rMin = this.min_r(qN);
@@ -151,15 +117,35 @@ define(
 					var q = qN;
 					var r = rN;
 
-					for (var i in directions.keys) {
+					if (Math.random() < spawn_chance) {
+						this.hex(q, r).type = 'uplink';
+						spawn_chance -= 0.005;
+					} else {
+						//spawn_chance += 0.001;
+					}
+
+					/*if (Math.random() < relay_chance) {
+						this.hex(q, r).type = 'relay';
+						relay_chance -= 0.025;
+					} else {
+						//relay_chance += 0.001;
+					}*/
+
+					if (Math.random() < access_chance) {
+						this.hex(q, r).type = 'access';
+						access_chance -= 0.03;
+					} else {
+						//access_chance += 0.0005;
+					}
+
+					for (var i in DIRECTIONS.keys) {
 						if (Math.random() < board_density) {
-							var key = directions.keys[i];
+							var key = DIRECTIONS.keys[i];
 
 							if (key != 'south' && key != 'north') {
-								var q2 = q + directions[key].offset.q;
-								var r2 = r + directions[key].offset.r;
+								var q2 = q + DIRECTIONS[key].offset.q;
+								var r2 = r + DIRECTIONS[key].offset.r;
 								var edge = this.edge(q, r, q2, r2);
-								//debug.temp(q, r, q2, r2, this.in_bounds(q, r, q2, r2));
 								edge.active = true;
 								//edge.cost = (Math.random() < 0.2) ? 0 : 1;
 							}
@@ -167,19 +153,19 @@ define(
 					}
 
 					if (mirrored) {
-						q = config.board.width - qN;
+						q = CONFIG.board.width - qN;
 						r = this.max_r(q) - rN + rMin;
 
-						for (var i in directions.keys) {
-							var key = directions.keys[i];
-							var q2 = qN + directions[key].offset.q;
-							var r2 = rN + directions[key].offset.r;
+						for (var i in DIRECTIONS.keys) {
+							var key = DIRECTIONS.keys[i];
+							var q2 = qN + DIRECTIONS[key].offset.q;
+							var r2 = rN + DIRECTIONS[key].offset.r;
 							var mirrored_edge = this.edge(qN, rN, q2, r2);
 
 							if (mirrored_edge.active) {
-								key = directions[key].opposite;
-								q2 = q + directions[key].offset.q;
-								r2 = r + directions[key].offset.r;
+								key = DIRECTIONS[key].opposite;
+								q2 = q + DIRECTIONS[key].offset.q;
+								r2 = r + DIRECTIONS[key].offset.r;
 								var edge = this.edge(q, r, q2, r2)
 								edge.active = true;
 								edge.cost = mirrored_edge.cost;
@@ -189,6 +175,67 @@ define(
 				}
 			}
 		});
+
+		HOOKS.on('player:change_points', function() {
+			// TODO: This information could be transmitted a lot more efficiently.
+			MESSAGE.send('update', [{
+				type: 'player',
+				player_id: this.id,
+				number: this.points,
+			}]);
+		});
+
+		// TODO: Fix this function.
+		HOOKS.on('hex:change_visibility', function(args) {
+			if (args.new_value <= TEAM.VISION_HIDDEN) {
+				return;
+			}
+
+			var data = {
+				type: 'hex',
+				position: [this.q, this.r],
+				player_id: (this.owner != null) ? this.owner.id : null,
+				units: {},
+				edges: [],
+			};
+
+			var units = this.units();
+			for (var p in units) {
+				var owner = this.parent_state.player(p);
+
+				if (owner.team != args.team) {
+					var unit_group = [];
+					for (var u in units[p]) {
+						// TODO: Check if the unit is hidden.
+						unit_group.push(units[p][u].id);
+					}
+
+					if (unit_group.length > 0) {
+						data.units[p] = unit_group;
+					}
+				}
+			}
+
+			for (var i in DIRECTIONS.keys) {
+				var key = DIRECTIONS.keys[i];
+				
+				if (this.edge(DIRECTIONS[key]).active) {
+					data.edges.push(key);
+				}
+			}
+
+			var players = this.parent_state.players();
+			for (var p in players) {
+				var player = players[p];
+				var clients = [];
+
+				if (player.team == args.team) {
+					clients.push(player.client);
+				}
+
+				MESSAGE.send('update', [data], player.client);
+			}
+		})
 
 		return object;
 	}

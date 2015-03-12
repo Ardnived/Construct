@@ -3,22 +3,22 @@ var socket = null;
 
 define(
 	['shared/message', 'external/binary'],
-	function(message) {
+	function(MESSAGE) {
 
 		function on_open(event) {
-			debug.dispatch("Socket Open");
+			DEBUG.dispatch("Socket Open");
 		};
 
 		function on_close(event) {
-			debug.dispatch("Socket Closed:", event.code, event.reason);
+			DEBUG.dispatch("Socket Closed:", event.code, event.reason);
 		};
 
 		function on_error(event) {
-			debug.error("Socket Error: ", event);
+			DEBUG.error("Socket Error: ", event);
 		};
 		
 		function on_message(stream, meta) {
-			debug.dispatch("Received message", "( metadata:", meta, ")");
+			DEBUG.dispatch("Received message", "( metadata:", meta, ")");
 
 			var parts = [];
 			stream.on('data', function(data) {
@@ -31,10 +31,10 @@ define(
 				var reader = new FileReader();
 				reader.addEventListener("loadend", function() {
 					var binary = new Int8Array(reader.result);
-					var msg = message.decode(binary);
+					var msg = MESSAGE.decode(binary);
 					
-					debug.flow('triggering dispatch:'+msg.type, msg.data);
-					hooks.trigger('dispatch:'+msg.type, null, msg.data);
+					DEBUG.flow('triggering dispatch:'+msg.type, msg.data);
+					HOOKS.trigger('dispatch:'+msg.type, null, msg.data);
 				});
 
 				reader.readAsArrayBuffer(blob);
@@ -43,7 +43,7 @@ define(
 
 		return {
 			init: function(port) {
-				debug.dispatch("Connecting to server...");
+				DEBUG.dispatch("Connecting to server...");
 				socket = new BinaryClient("ws://"+location.hostname+":"+port+"/");
 				socket.on('stream', on_message);
 				socket.on('error', on_error);
@@ -52,7 +52,7 @@ define(
 			},
 			
 			send: function(binary, length) {
-				debug.dispatch("Sending data", binary, "with length", length);
+				DEBUG.dispatch("Sending data", binary, "with length", length);
 				socket.send(binary, {
 					size: length
 				});

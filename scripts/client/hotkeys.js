@@ -9,7 +9,7 @@ define(
 			e = e || window.event;
 			
 			if (typeof keys[e.keyCode] !== 'undefined') {
-				hooks.trigger('keypress:'+keys[e.keyCode]);
+				HOOKS.trigger('keypress:'+keys[e.keyCode]);
 			}
 		};
 
@@ -17,6 +17,6 @@ define(
 	}
 );
 
-hooks.on('keypress:escape', function() {
-	debug.flow('pressed escape.');
+HOOKS.on('keypress:escape', function() {
+	DEBUG.flow('pressed escape.');
 });

@@ -1,10 +1,20 @@
 
 define(
 	['shared/targets', './move'],
-	function(targets, move_action) {
+	function(TARGETS, MOVE) {
 		return {
-			targets: [targets.empty],
-			execute: move_action.execute,
+			targets: [{
+				test: TARGETS.spawnzone,
+				error: 'needs uplink',
+			}],
+			order: 5,
+			text: {
+				name: 'spawn',
+				future: 'spawning',
+				past: 'spawned',
+			},
+			check_for_unit: false,
+			execute: MOVE.execute,
 		};
 	}
 );

@@ -15,22 +15,30 @@
 		<div class="progress progress-striped active"><div id="right-t3" class="progress-bar progress-bar-info"> </div></div>
 	</div>
 	<div id="left">
-		<h1 id="local_player_title" class="title">Player 1</h1>
-		<div id="tooltip">
+		<h1 id="local_player_title" class="title">Spectator</h1>
+		<div id="tooltip">tooltip</div>
+		
+		<!--<button data-action="spawn" data-unit="0" class="unit unit-sniffer"></button>-->
+		<button data-action="spawn" data-unit="1" class="unit unit-peeper"></button>
+		PEEPER
+		<br>
+		<button data-action="spawn" data-unit="2" class="unit unit-bouncer"></button>
+		<!--<button data-action="spawn" data-unit="3" class="unit unit-enforcer"></button>-->
+		BOUNCER
+		<br>
+		<!--<button data-action="spawn" data-unit="4" class="unit unit-seeker"></button>-->
+		<button data-action="spawn" data-unit="5" class="unit unit-cleaner"></button>
+		CLEANER
+		<br>
+		<button data-action="spawn" data-unit="6" class="unit unit-carrier"></button>
+		CARRIER
+		<br>
+		<button id="skip-button" style="color: black; font-weight: bold;">SKIP TURN</button>
 
-		</div>
-		<button data-action="create_unit" data-unit="0">
-			<img src="/visual/img/icon_17462.png">
-		</button>
-		<button data-action="create_unit" data-unit="1">
-			<img src="/visual/img/icon_17287.png">
-		</button>
-		<button data-action="create_unit" data-unit="2">
-			<img src="/visual/img/icon_17292.png">
-		</button>
+		<div id="error-message" style="color: orangered;"></div>
 	</div>
 	<div id="right">
-		<h1 class="title">Opposition</h1>
+		<h1 class="title">Players</h1>
 	</div>
 	<div id="canvas" oncontextmenu="return false;"></div>
 

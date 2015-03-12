@@ -1,29 +1,37 @@
 
 define(
 	['shared/targets', 'shared/util'],
-	function(targets, util) {
+	function(TARGETS, UTIL) {
 		return {
 			targets: [],
+			order: 4,
+			text: {
+				name: 'reconfigure',
+				future: 'reconfiguring',
+				past: 'reconfigured',
+			},
 			execute: function(state, data) {
-				util.require_properties(['player', 'unit'], data);
+				UTIL.require_properties(['player_id', 'unit_id'], data);
 
 				var results = [];				
-				var unit = state.player(data.player).unit(data.unit);
-				var edges = state.edges(unit.q, unit.r);
+				var unit = state.player(data.player_id).unit(data.unit_id);
+				var affected_hexes = [
+					data.position,
+				];
+				var edges = state.edges(unit.position.q, unit.position.r);
 
 				for (var i = edges.length - 1; i >= 0; i--) {
 					var edge = edges[i];
 					edge.active = !edge.active;
 
-					results.push({
-						type: 'edge',
-						q: [edge.q1, edge.q2],
-						r: [edge.r1, edge.r2],
-						active: edge.active,
-					});
+					if (edge.q1 != unit.position.q && edge.r1 != unit.position.r) {
+						affected_hexes.push([edge.q1, edge.r1]);
+					} else {
+						affected_hexes.push([edge.q2, edge.r2]);
+					}
 				};
 
-				return results;
+				return affected_hexes;
 			}
 		};
 	}

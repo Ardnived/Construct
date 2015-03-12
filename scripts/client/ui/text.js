@@ -2,16 +2,16 @@
 
 define(
 	['external/crafty', './parent'],
-	function(Crafty, parent) {
+	function(CRAFTY, PARENT) {
 		function text(text, attr) {
-			this._entity = Crafty.e("2D, DOM, Text")
+			this._entity = CRAFTY.e("2D, DOM, Text")
 				.text(text)
 				.unselectable();
 
-			parent.call(this, attr);
+			PARENT.call(this, attr);
 		};
 
-		text.prototype = parent.prototype;
+		text.prototype = PARENT.prototype;
 
 		text.prototype.css = function(rules) {
 			this._entity.css(rules);

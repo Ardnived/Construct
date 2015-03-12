@@ -2,9 +2,9 @@
 
 define(
 	['external/crafty', './graphic'],
-	function(Crafty, parent) {
+	function(CRAFTY, PARENT) {
 		function button(spriteset, attr, events_key, owner, hitBox) {
-			parent.call(this, spriteset, attr);
+			PARENT.call(this, spriteset, attr);
 
 			if (typeof events_key === 'undefined') {
 				events_key = 'button';
@@ -17,40 +17,40 @@ define(
 			this._entity.addComponent("Mouse");
 
 			if (typeof hitBox != 'undefined') {
-				this._entity.areaMap(new Crafty.polygon(hitBox));
+				this._entity.areaMap(new CRAFTY.polygon(hitBox));
 			}
 
 			this._entity.bind("MouseOver", function(event) {
-				hooks.trigger(events_key+':mouse_over', owner, event);
+				HOOKS.trigger(events_key+':mouse_over', owner, event);
 			});
 			
 			this._entity.bind("MouseOut", function(event) {
-				hooks.trigger(events_key+':mouse_out', owner, event);
+				HOOKS.trigger(events_key+':mouse_out', owner, event);
 			});
 			
 			this._entity.bind("MouseDown", function(event) {
-				if (this.active) hooks.trigger(events_key+':mouse_down', owner, event);
+				if (this.active) HOOKS.trigger(events_key+':mouse_down', owner, event);
 			});
 			
 			this._entity.bind("MouseUp", function(event) {
-				if (this.active) hooks.trigger(events_key+':mouse_up', owner, event);
+				if (this.active) HOOKS.trigger(events_key+':mouse_up', owner, event);
 			});
 			
 			this._entity.bind("Click", function(event) {
-				if (this.active) hooks.trigger(events_key+':mouse_click', owner, event);
+				if (this.active) HOOKS.trigger(events_key+':mouse_click', owner, event);
 			});
 		};
 
-		button.prototype = parent.prototype;
+		button.prototype = PARENT.prototype;
 
-		button.prototype._attr = parent.prototype.attr;
+		button.prototype._attr = PARENT.prototype.attr;
 
 		button.prototype.attr = function(attr) {
-			if ('active' in attr) {
+			if (typeof attr !== 'undefined' && 'active' in attr) {
 				this.active = attr.active;
 			}
 
-			parent.prototype._attr.call(this, attr);
+			return PARENT.prototype._attr.call(this, attr);
 		};
 
 		Object.defineProperty(button.prototype, 'active', {

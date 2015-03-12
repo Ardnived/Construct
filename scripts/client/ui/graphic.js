@@ -2,17 +2,17 @@
 
 define(
 	['external/crafty', './parent'],
-	function(Crafty, parent) {
+	function(CRAFTY, PARENT) {
 		function graphic(spriteset, attr) {
 			this._sprite = Object.keys(spriteset)[0];
 			this._spriteset = spriteset;
 
-			this._entity = Crafty.e("2D, Canvas, "+this._spriteset[this._sprite]);
+			this._entity = CRAFTY.e("2D, Canvas, "+this._spriteset[this._sprite]);
 
-			parent.call(this, attr);
+			PARENT.call(this, attr);
 		};
 
-		graphic.prototype = parent.prototype;
+		graphic.prototype = PARENT.prototype;
 
 		graphic.prototype.spriteset = function(new_spriteset) {
 			if (typeof new_spriteset !== 'undefined') {

@@ -1,10 +1,15 @@
 
 define(
-	['./bouncer', './sniffer'],
-	function(bouncer, sniffer) {
+	['./sniffer', './peeper', './bouncer', './enforcer', './seeker', './cleaner', './carrier'],
+	function(SNIFFER, PEEPER, BOUNCER, ENFORCER, SEEKER, CLEANER, CARRIER) {
 		var root = {
-			bouncer: bouncer,
-			sniffer: sniffer,
+			sniffer: SNIFFER,
+			peeper: PEEPER,
+			bouncer: BOUNCER,
+			enforcer: ENFORCER,
+			seeker: SEEKER,
+			cleaner: CLEANER,
+			carrier: CARRIER,
 		};
 
 		for (var key in root) {
