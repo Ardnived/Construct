@@ -1,9 +1,8 @@
 
-var socket = null;
-
 define(
 	['shared/message', 'external/binary'],
 	function(MESSAGE) {
+		var socket = null;
 
 		function on_open(event) {
 			DEBUG.dispatch("Socket Open");
@@ -33,7 +32,7 @@ define(
 					var binary = new Int8Array(reader.result);
 					var msg = MESSAGE.decode(binary);
 					
-					DEBUG.flow('triggering dispatch:'+msg.type, msg.data);
+					DEBUG.flow('doing dispatch:'+msg.type, msg.data);
 					HOOKS.trigger('dispatch:'+msg.type, null, msg.data);
 				});
 

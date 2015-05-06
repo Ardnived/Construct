@@ -12,7 +12,7 @@ function on_error(error) {
 };
 
 function on_message(stream, meta) {
-	DEBUG.dispatch("Began message.", meta);
+	DEBUG.dispatch("Receiving message.", meta);
 	
 	var client = this;
 	var buffer = new Buffer(meta.size);
@@ -61,7 +61,7 @@ define(
 					HOOKS.trigger("dispatch:connection", null, connection);
 				});
 				
-				DEBUG.dispatch("Launched Socket Server on port", CONFIG.port.socket);
+				DEBUG.dispatch("Launched Socket Server on port", CONFIG.port);
 			},
 
 			send: function(binary, length, targets) {

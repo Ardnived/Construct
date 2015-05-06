@@ -1,10 +1,9 @@
 
 define({
-	reveals: true,
-	mobile: true,
+	key: 'enforcer',
 	move: 1,
 	actions: {
-		trace: "reveal last program to pass through.",
-		bug: "next time a program passes through, reveal them until next sync.",
+		lockdown: "no program may enter or leave an adjacent hex until next sweep.",
+		prism: "next time a program enters, lock them down until next sweep.",
 	},
 });

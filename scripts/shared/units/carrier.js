@@ -1,7 +1,6 @@
 
 define({
-	reveals: true,
-	mobile: true,
-	move: 1,
+	key: 'carrier',
+	move: 2,
 	actions: {},
 });

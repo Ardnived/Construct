@@ -1,6 +1,5 @@
 
 define(
-	['shared/rout'],
 	function() {
 		var root = {
 			INTERVAL_NONE: 'd0',
@@ -28,28 +27,19 @@ define(
 			}
 		};
 
-		HOOKS.on('player:change_active', function() {
-			if (this.active == false) {
-				var state = this.parent_state;
-				// TODO: Make this more efficient? Maybe use STATE.meta.ready_players
+		if (CONFIG.is_server) {
+			HOOKS.on('player:change_active', function() {
+				if (this.active == false) {
+					var state = this.parent_state;
+					state.meta.ready_players++;
 
-				var round_ended = true;
-				for (var i = state.meta.player_count - 1; i >= 0; i--) {
-					var player = state.player(i);
-
-					if (player.active) {
-						round_ended = false;
-						DEBUG.temp('round has not ended due to player', player.id);
-						break;
+					if (state.meta.ready_players >= state.meta.player_count) {
+						// TODO: Don't sync until the server tells us to.
+						HOOKS.trigger('state:sync', state);
 					}
-				};
-
-				if (round_ended) {
-					state.meta.round += 1;
-					HOOKS.trigger('state:sync', state);
 				}
-			}
-		});
+			});
+		}
 
 		return root;
 	}

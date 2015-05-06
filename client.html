@@ -2,45 +2,99 @@
 
 <head>
 	<link rel="stylesheet" type="text/css" href="/styles/bootstrap.css">
-	<link rel="stylesheet" type="text/css" href="/styles/style.css">
+	<link rel="stylesheet" type="text/css" href="/styles/general.css">
+	<link rel="stylesheet" type="text/css" href="/styles/lobby.css">
+	<link rel="stylesheet" type="text/css" href="/styles/game.css">
 </head>
 <body>
-	<div id="topbar">
-		<div class="progress progress-striped active flip"><div id="left-t3" class="progress-bar progress-bar-info"> </div></div>
-		<div class="progress progress-striped active flip"><div id="left-t2" class="progress-bar progress-bar-info"> </div></div>
-		<div class="progress progress-striped active flip"><div id="left-t1" class="progress-bar progress-bar-info"> </div></div>
-		<strong id="roundcounter">SYNC</strong>
-		<div class="progress progress-striped active"><div id="right-t1" class="progress-bar progress-bar-info"> </div></div>
-		<div class="progress progress-striped active"><div id="right-t2" class="progress-bar progress-bar-info"> </div></div>
-		<div class="progress progress-striped active"><div id="right-t3" class="progress-bar progress-bar-info"> </div></div>
-	</div>
-	<div id="left">
-		<h1 id="local_player_title" class="title">Spectator</h1>
-		<div id="tooltip">tooltip</div>
-		
-		<!--<button data-action="spawn" data-unit="0" class="unit unit-sniffer"></button>-->
-		<button data-action="spawn" data-unit="1" class="unit unit-peeper"></button>
-		PEEPER
-		<br>
-		<button data-action="spawn" data-unit="2" class="unit unit-bouncer"></button>
-		<!--<button data-action="spawn" data-unit="3" class="unit unit-enforcer"></button>-->
-		BOUNCER
-		<br>
-		<!--<button data-action="spawn" data-unit="4" class="unit unit-seeker"></button>-->
-		<button data-action="spawn" data-unit="5" class="unit unit-cleaner"></button>
-		CLEANER
-		<br>
-		<button data-action="spawn" data-unit="6" class="unit unit-carrier"></button>
-		CARRIER
-		<br>
-		<button id="skip-button" style="color: black; font-weight: bold;">SKIP TURN</button>
+	<ul class="tabs">
+		<li id="lobby">
+			<input type="radio" name="tabs" id="tab1" checked />
+			<label for="tab1">Lobby</label>
+			<div id="tab-content1" class="tab-content">
+				This is the game lobby.
+			</div>
+		</li>
 
-		<div id="error-message" style="color: orangered;"></div>
-	</div>
-	<div id="right">
-		<h1 class="title">Players</h1>
-	</div>
-	<div id="canvas" oncontextmenu="return false;"></div>
+		<li id="game">
+			<input type="radio" name="tabs" id="tab2" />
+			<label for="tab2">Game</label>
+			<div id="tab-content2" class="tab-content">
+				<div id="topbar">
+					<div class="progress progress-striped active flip"><div id="left-t3" class="progress-bar progress-bar-info"> </div></div>
+					<div class="progress progress-striped active flip"><div id="left-t2" class="progress-bar progress-bar-info"> </div></div>
+					<div class="progress progress-striped active flip"><div id="left-t1" class="progress-bar progress-bar-info"> </div></div>
+					<strong id="roundcounter">SYNC</strong>
+					<div class="progress progress-striped active"><div id="right-t1" class="progress-bar progress-bar-info"> </div></div>
+					<div class="progress progress-striped active"><div id="right-t2" class="progress-bar progress-bar-info"> </div></div>
+					<div class="progress progress-striped active"><div id="right-t3" class="progress-bar progress-bar-info"> </div></div>
+				</div>
+				<div id="left">
+					<h1 id="local_player_title" class="title">Spectator</h1>
+					<div id="tooltip">tooltip</div>
+					
+					<table>
+						<tr>
+							<td><button data-action="spawn" data-unit="0" class="unit unit-sniffer"></button></td>
+							<td>
+								SNIFFER<br>
+								<small style="color:lightgrey;">monitor - trace</small>
+							</td>
+						</tr>
+						<tr>
+							<td><button data-action="spawn" data-unit="1" class="unit unit-peeper"></button></td>
+							<td>
+								PEEPER<br>
+								<small style="color:lightgrey;">spy - watch</small>
+							</td>
+						</tr>
+						<tr>
+							<td><button data-action="spawn" data-unit="2" class="unit unit-bouncer"></button></td>
+							<td>
+								BOUNCER<br>
+								<small style="color:lightgrey;">pushback - pushthrough</small>
+							</td>
+						</tr>
+						<tr>
+							<td><button data-action="spawn" data-unit="3" class="unit unit-enforcer"></button></td>
+							<td>
+								ENFORCER<br>
+								<small style="color:lightgrey;">lockdown - prism</small>
+							</td>
+						</tr>
+						<tr>
+							<td><button data-action="spawn" data-unit="4" class="unit unit-seeker"></button></td>
+							<td>
+								SEEKER<br>
+								<small style="color:lightgrey;">destroy - speed</small>
+							</td>
+						</tr>
+						<tr>
+							<td><button data-action="spawn" data-unit="5" class="unit unit-cleaner"></button></td>
+							<td>
+								CLEANER<br>
+								<small style="color:lightgrey;">reformat - reconfigure</small>
+							</td>
+						</tr>
+						<tr>
+							<td><button data-action="spawn" data-unit="6" class="unit unit-carrier"></button></td>
+							<td>CARRIER</td>
+						</tr>
+					</table>
+
+					<button id="skip-button" style="color: black; font-weight: bold;">END TURN</button>
+
+					<div id="error-message" style="color: orangered;"></div>
+				</div>
+				<div id="right">
+					<h1 class="title">Players</h1>
+				</div>
+				<div id="canvas" oncontextmenu="return false;"></div>
+			</div>
+		</li>
+	</ul>
+
+	<br style="clear: both;" />
 
 	<script data-main="/client.js" src="scripts/external/require.js"></script>
 </body>

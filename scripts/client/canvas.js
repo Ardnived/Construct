@@ -57,6 +57,17 @@ define(
 							hidden:  [1,9],
 						},
 					},
+					lockdown: {
+						neutral: [2,0],
+					},
+					prism: {
+						ally:  [2,1],
+						enemy: [3,1],
+					},
+					monitor: {
+						ally:  [2,2],
+						enemy: [3,2],
+					},
 				},
 				edge: {
 					empty: {

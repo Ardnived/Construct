@@ -15,6 +15,7 @@ define(
 		var unit = function(parent_state, unit_index, player) {
 			this.parent_state = parent_state;
 			this.id = unit_index;
+			this.last_action = -1;
 			this._type = null;
 			this._owner = player;
 			this._position = null;
@@ -87,25 +88,50 @@ define(
 					};
 				}
 
-				var allowed = HOOKS.filter('unit:move', this, true, new_value);
-
-				if (allowed) {
-					var old_position = this._position;
-					if (old_position == null) {
-						HOOKS.trigger('unit:spawned', this);
-					}
-
-					this._position = new_value;
-
-					if (new_value == null) {
-						HOOKS.trigger('unit:destroyed', this, old_position);
-					}
-
-					HOOKS.trigger('unit:moved', this, old_position);
-				}
+				HOOKS.trigger('unit:move', this, {
+					old_position: this._position,
+					new_position: new_value,
+				});
 			},
 		});
+
+		HOOKS.on('unit:move', function(args) {
+			if (args.old_position == null) {
+				HOOKS.trigger('unit:spawned', this, args.new_position);
+			}
+
+			if (args.new_position == null) {
+				DEBUG.game("Destroyed a unit at", args.old_position, this.key);
+				HOOKS.trigger('unit:destroyed', this, args.old_position);
+			}
+
+			this._position = args.new_position;
+		}, HOOKS.ORDER_EXECUTE);
 
 		return root;
 	}
 );
+
+HOOKS.on('unit:data', function(args) {
+	var data = args.data;
+	data.type = 'unit';
+	data.unit_id = this.id;
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('owner') != -1) {
+		data.player_id = this.owner.id;
+	}
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('type') != -1) {
+		if (this.type == null) {
+			DEBUG.error("This unit's type is not set,", this);
+		} else {
+			data.unit_type = this.type.key;
+		}
+	}
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('position') != -1) {
+		if (this.position != null) { // TODO: This check could maaaybe cause problems.
+			data.position = [this.position.q, this.position.r];
+		}
+	}
+}, HOOKS.ORDER_EXECUTE);

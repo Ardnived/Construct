@@ -76,9 +76,9 @@ requirejs(
 					respond(404, response);
 				}
 			});
-		}).listen(CONFIG.port.http);
+		}).listen(CONFIG.port);
 
-		DEBUG.dispatch("Launched HTTP Server on port", CONFIG.port.http);
+		DEBUG.dispatch("Launched HTTP Server on port", CONFIG.port);
 	}
 );
 
@@ -122,7 +122,7 @@ requirejs(
 
 		HOOKS.on('dispatch:update', function(args) {
 			args.state = games[args.client.game_id];
-			DEBUG.temp("sending game:"+args.data.type, args.data);
+			//DEBUG.temp("sending game:"+args.data.type, args.data);
 			HOOKS.trigger('game:'+args.data.type, null, args);
 		});
 

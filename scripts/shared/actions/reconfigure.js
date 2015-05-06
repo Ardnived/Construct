@@ -3,13 +3,10 @@ define(
 	['shared/targets', 'shared/util'],
 	function(TARGETS, UTIL) {
 		return {
+			key: 'reconfigure',
 			targets: [],
 			order: 4,
-			text: {
-				name: 'reconfigure',
-				future: 'reconfiguring',
-				past: 'reconfigured',
-			},
+			cost: 1,
 			execute: function(state, data) {
 				UTIL.require_properties(['player_id', 'unit_id'], data);
 
@@ -32,7 +29,17 @@ define(
 				};
 
 				return affected_hexes;
-			}
+			},
+			affected_hexes: function(data, future) {
+				UTIL.require_properties(['position'], data);
+
+				return [{
+					title: (future ? 'reconfiguring' : 'reconfigured'),
+					source: true,
+					q: data.position[0],
+					r: data.position[1],
+				}];
+			},
 		};
 	}
 );

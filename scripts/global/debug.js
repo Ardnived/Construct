@@ -49,4 +49,16 @@ DEBUG = {
 		console.log.apply(console, params);
 	},
 
+	chat: function() {
+		var params = [":chat     -"];
+		Array.prototype.push.apply(params, arguments);
+		console.log.apply(console, params);
+	},
+
+	data: function() {
+		var params = [":chat     -"];
+		Array.prototype.push.apply(params, arguments);
+		console.log.apply(console, params);
+	},
+
 }

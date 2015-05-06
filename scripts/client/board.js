@@ -47,11 +47,33 @@ define(
 		});
 
 		HOOKS.on('hex:new', function() {
-			this.graphic = new TILE(this, root.get_x(this.q, this.r), root.get_y(this.q, this.r));
+			var hex_x = root.get_x(this.q, this.r);
+			var hex_y = root.get_y(this.q, this.r);
+
+			this.graphic = new TILE(this, hex_x, hex_y);
+
+			var x = this.graphic.x;
+			var y = this.graphic.y;
+			var w = this.graphic.w;
+			var h = this.graphic.h;
+
+			this.status = {
+				lockdown: new GRAPHIC(CANVAS.image.hex.lockdown, {
+					x: x, y: y, w: w, h: h, z: -7,
+					visible: false,
+				}),
+				prism: new GRAPHIC(CANVAS.image.hex.prism, {
+					x: x, y: y, w: w, h: h, z: -6,
+					visible: false,
+				}),
+				monitor: new GRAPHIC(CANVAS.image.hex.monitor, {
+					x: x, y: y, w: w, h: h, z: -5,
+					visible: false,
+				}),
+			};
 		});
 
 		HOOKS.on('hex:change_visibility', function(args) {
-			DEBUG.temp("HEX:CHANGE_VISIBILITY", this.key, args);
 			if (GAME_STATE.meta.local_player.team === args.team) {
 				if (args.new_value > TEAM.VISION_HIDDEN) {
 					this.graphic.sprite('visible');
@@ -91,13 +113,16 @@ define(
 				}
 			}
 		}, HOOKS.ORDER_AFTER);
+
+		HOOKS.on('hex:change_lockdown', function() {
+			this.status.lockdown.visible = this.lockdown;
+		}, HOOKS.ORDER_AFTER);
 		
 		HOOKS.on('unit:new', function() {
 			this.graphic = new GRAPHIC(CANVAS.image.unit.carrier, {
 				visible: false,
 			});
 
-			DEBUG.temp("created unit", this.key, "check", this.parent_state.meta.local_player_id, '===', this.owner);
 			if (this.owner.id === this.parent_state.meta.local_player_id) {
 				this.graphic.sprite('local');
 			} else if (this.owner.team === this.parent_state.meta.local_player.team) {
@@ -129,15 +154,22 @@ define(
 			// TODO: Write code that will make enemies appear big if the hex is otherwise unoccupied.
 			if (unit.owner === unit.parent_state.meta.local_player) {
 				unit.graphic.attr({
+					x: root.get_x(this.q, this.r) - CONFIG.hex.width * 3 / 4,
+					y: root.get_y(this.q, this.r) - CONFIG.hex.height * 1 / 2,
+					w: 18, h: 18,
+				});
+				/*
+				unit.graphic.attr({
 					x: root.get_x(this.q, this.r) - CONFIG.hex.width * 5 / 9 + 1,
 					y: root.get_y(this.q, this.r) - CONFIG.hex.height * 6 / 9,
 					w: 24, h: 24,
 				});
+				*/
 			} else {
 				unit.graphic.attr({
-					x: root.get_x(this.q, this.r) - CONFIG.hex.width * (3 - (unit.owner.id * 2)) / 5,
-					y: root.get_y(this.q, this.r) - CONFIG.hex.height / 5,
-					w: 12, h: 12,
+					x: root.get_x(this.q, this.r) - CONFIG.hex.width * 1 / 4,
+					y: root.get_y(this.q, this.r) - CONFIG.hex.height * 1 / 2,
+					w: 18, h: 18,
 				});
 			}
 
@@ -146,6 +178,26 @@ define(
 
 		HOOKS.on('hex:unit_lost', function(unit) {
 			unit.graphic.visible = false;
+		});
+
+		HOOKS.on('hex:trap_gained', function(args) {
+			var key = args.key;
+			var team = args.team;
+
+			if (team === GAME_STATE.meta.local_player.team) {
+				this.status[key].sprite('ally');
+			} else {
+				this.status[key].sprite('enemy');
+			}
+
+			this.status[key].visible = true;
+		});
+
+		HOOKS.on('hex:trap_lost', function(args) {
+			var key = args.key;
+			var team = args.team;
+
+			this.status[key].visible = false;
 		});
 
 		return root;

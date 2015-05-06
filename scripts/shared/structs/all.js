@@ -1,15 +1,15 @@
 
 define(
-	['./access', './relay', './uplink'],
-	function(ACCESS, RELAY, UPLINK) {
-		var root = {
-			access: ACCESS,
-			relay: RELAY,
-			uplink: UPLINK,
-		};
+	[
+		'./access',
+		'./relay',
+		'./uplink',
+	],
+	function() {
+		var root = {};
 
-		for (var key in root) {
-			root[key].key = key;
+		for (var i = arguments.length - 1; i >= 0; i--) {
+			root[arguments[i].key] = arguments[i];
 		};
 
 		return root;

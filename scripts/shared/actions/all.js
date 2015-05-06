@@ -1,20 +1,77 @@
 
 define(
-	['./skip', './spawn', './move', './reconfigure', './reformat', './spy', './watch'],
-	function(SKIP, SPAWN, MOVE, RECONFIGURE, REFORMAT, SPY, WATCH) {
-		var root = {
-			skip: SKIP,
-			spawn: SPAWN,
-			move: MOVE,
-			reconfigure: RECONFIGURE,
-			reformat: REFORMAT,
-			spy: SPY,
-			watch: WATCH,
+	[
+		'./monitor',
+		'./destroy',
+		'./lockdown',
+		'./move',
+		'./prism',
+		'./push',
+		'./reconfigure',
+		'./reformat',
+		'./skip',
+		'./spawn',
+		'./spy',
+		'./trace',
+		'./watch',
+	],
+	function() {
+		var root = {};
+
+		for (var i = arguments.length - 1; i >= 0; i--) {
+			root[arguments[i].key] = arguments[i];
 		};
 
-		for (var key in root) {
-			root[key].key = key;
+		root.execute = function(action_key, state, data) {
+			var unit = null;
+			if ('player_id' in data && 'unit_id' in data) {
+				unit = state.player(data.player_id).unit(data.unit_id);
+			}
+
+			HOOKS.trigger('action:execute', root[action_key], {
+				state: state,
+				data: data,
+				unit: unit,
+			});
 		};
+
+		HOOKS.on('action:queue', function(args) {
+			var data = args.data;
+			var state = args.state;
+			var unit = state.player(data.player_id).unit(data.unit_id);
+
+			// TODO: Allow for non-unit actions.
+
+			// Check if the unit can act.
+			if (unit.last_action >= state.meta.round) {
+				DEBUG.error("Unit tried to act when it has already acted this turn.", unit.last_action, '>=', state.meta.round);
+				return false;
+			}
+
+			// Player can't act unless they have action points.
+			if (unit.owner.action_points < this.cost) {
+				DEBUG.error("Player", unit.owner.id, "tried to act when they didn't have any action points.");
+				return false;
+			}
+
+			// Check if this unit can perform that action.
+			if (this.globally_available != true && !(this.key in unit.type.actions)) {
+				DEBUG.fatal("Unit tried to execute", "'"+action.key+"'", "without access.", "Type:", unit.type);
+				return false;
+			}
+
+			// TODO: Check if targets are valid.
+		}, HOOKS.ORDER_VETO);
+
+		HOOKS.on('action:execute', function(args) {
+			if (args.unit != null) {
+				DEBUG.temp("Unit", args.unit.id, "acted on turn", args.state.meta.round);
+				args.unit.last_action = args.state.meta.round;
+			}
+
+			DEBUG.flow("Executing action", this.key, args.data);
+			this.execute(args.state, args.data);
+		}, HOOKS.ORDER_EXECUTE);
 
 		return root;
 	}

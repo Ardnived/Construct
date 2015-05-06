@@ -14,9 +14,6 @@ requirejs.config({
 		'external/spritegen': {
 			exports: 'psg',
 		},
-		/*'external/queue': {
-			exports: 'PriorityQueue',
-		},*/
 	},
 });
 
@@ -27,29 +24,28 @@ GAME_STATE = null;
 requirejs(
 	['client/dispatch', 'shared/state', 'shared/message', 'client/updater'], 
 	function(DISPATCH, STATE, MESSAGE) {
-		GAME_STATE = new STATE();
-
 		HOOKS.on('dispatch:update', function(data) {
 			if (data instanceof Array) {
+				DEBUG.temp("DEPRECATED");
 				HOOKS.trigger('state:update', GAME_STATE, data);
 			} else {
 				DEBUG.fatal("Tried to send non-array updates", data);
 			}
 		});
 
-		HOOKS.on('dispatch:rejected', function(data) {
-			var output = "Rejected: "+data.message+' - '+MESSAGE.text[data.message];
-			DEBUG.error(output);
+		HOOKS.on('dispatch:sync', function(data) {
+			if (data instanceof Array) {
+				DEBUG.flow('--------- RECEIVED SYNC COMMAND ---------');
+				HOOKS.trigger('state:update', GAME_STATE, data);
+				HOOKS.trigger('state:sync', GAME_STATE);
+			} else {
+				DEBUG.fatal("Tried to send non-array updates", data);
+			}
 		});
 
-		HOOKS.on('dispatch:gameover', function(data) {
-			var output = "GAMEOVER: "+data.message+' - '+MESSAGE.text[data.message];
-			DEBUG.error(output);
-		});
-
-		requirejs(
-			['client/topbar', 'client/hotkeys', 'client/cursor', 'client/selection', 'client/actions', 'client/board'],
-			function() {
+		HOOKS.on('dispatch:reset', function(data) {
+			if (data instanceof Array) {
+				GAME_STATE = new STATE();
 				for (var q = GAME_STATE.min_q(); q <= GAME_STATE.max_q(); q++) {
 					for (var r = GAME_STATE.min_r(q); r <= GAME_STATE.max_r(q); r++) {
 						// Initialize each hex.
@@ -57,7 +53,20 @@ requirejs(
 					}
 				}
 
-				DISPATCH.init(CONFIG.port.socket);
+				HOOKS.trigger('state:update', GAME_STATE, data);
+			} else {
+				DEBUG.fatal("Tried to send non-array updates", data);
+			}
+		});
+
+		HOOKS.on('dispatch:gameover', function(data) {
+			DEBUG.error("GAMEOVER: "+data.message+' - '+MESSAGE.text[data.message]);
+		});
+
+		requirejs(
+			['client/topbar', 'client/hotkeys', 'client/cursor', 'client/selection', 'client/actions', 'client/board'],
+			function() {
+				DISPATCH.init(CONFIG.port);
 			}
 		);
 	}

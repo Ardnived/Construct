@@ -1,34 +1,44 @@
 
-define(
+requirejs(
 	['external/jquery', 'shared/message', 'shared/actions/all', 'shared/util'],
 	function($, MESSAGE, ACTIONS, UTIL) {
 		var self = {
+			waiting: false,
 			current_action: null,
 			acting_unit: null,
 			targets: null,
 		};
 
-		var root = {
-			execute: function(action_name, unit_index) {
-				this.cancel();
+		HOOKS.on('action:prepare', function(args) {
+			if (self.waiting) {
+				DEBUG.error("Waiting for server to confirm your last action, try again soon.");
+				return;
+			}
 
-				self.current_action = ACTIONS[action_name];
-				self.targets = [];
+			self.waiting = true;
+			self.current_action = this;
+			self.targets = [];
 
-				if (typeof unit_index !== 'undefined') {
-					self.acting_unit = GAME_STATE.meta.local_player.unit(unit_index);
+			if (typeof args !== 'undefined') {
+				if ('targets' in args) {
+					self.targets = args.targets;
 				}
 
-				if (self.current_action.targets.length === 0) {
-					finish_execution();
+				if ('unit_id' in args) {
+					self.acting_unit = GAME_STATE.meta.local_player.unit(args.unit_id);
 				}
-			},
+			}
 
-			cancel: function() {
-				self.current_action = null;
-				self.acting_unit = null;
-			},
-		};
+			if (self.targets.length >= self.current_action.targets.length) {
+				finish_execution();
+			}
+		});
+
+		function clear_execution() {
+			self.waiting = false;
+			self.current_action = null;
+			self.acting_unit = null;
+		}
 
 		function continue_execution() {
 			// TODO: create some display code.
@@ -64,14 +74,37 @@ define(
 				last_hex.graphic.hover = false;
 			}
 
-			MESSAGE.send('update', HOOKS.filter('action:send', self.current_action, data));
+			var outcome = HOOKS.trigger('action:queue', self.current_action, {
+				state: GAME_STATE,
+				data: data,
+			});
+
+			if (outcome == false) {
+				clear_execution();
+			}
 		}
+
+		HOOKS.on('action:queue', function(args) {
+			// TODO: Refactor this.
+			if ('unit_id' in args.data && self.acting_unit == null) {
+				self.acting_unit = GAME_STATE.meta.local_player.unit(args.data.unit_id);
+			}
+
+			DEBUG.flow("Queueing up an action", args.data);
+			MESSAGE.send('update', args.data);
+
+			// TODO: Wait for confirmation from the server.
+			if ('player_id' in args.data) {
+				GAME_STATE.player(args.data.player_id).action_points -= this.cost;
+			}
+		}, HOOKS.ORDER_EXECUTE);
 
 		$('button.unit').each(function() {
 			this.onclick = function() {
-				DEBUG.temp(GAME_STATE.meta.local_player);
 				if (GAME_STATE.meta.local_player.unit(this.dataset.unit).position == null) {
-					root.execute(this.dataset.action, this.dataset.unit);
+					HOOKS.trigger('action:prepare', ACTIONS[this.dataset.action], {
+						unit_id: this.dataset.unit,
+					});
 				} else {
 					// TODO: Disable the button if it shouldn't be used.
 					DEBUG.error("That unit has already been placed.");
@@ -81,7 +114,7 @@ define(
 
 		$('#skip-button').each(function() {
 			this.onclick = function() {
-				root.execute('skip');
+				HOOKS.trigger('action:prepare', ACTIONS['skip']);
 			};
 		});
 
@@ -92,7 +125,6 @@ define(
 				
 				if (target.test(this, GAME_STATE.meta.local_player)) {
 					self.targets[i] = this;
-					DEBUG.temp("Setting target to", this.q, ',', this.r);
 					continue_execution();
 				} else {
 					DEBUG.error("Invalid target:", target.error);
@@ -106,52 +138,86 @@ define(
 				var i = self.targets.length;
 				var target = self.current_action.targets[i];
 
-				if (target.test(this, GAME_STATE.meta.local_player)) {
-					this.graphic.hover = {
-						sprite: 'positive',
-						text: self.current_action.text.name,
-					};
-				} else {
+				if (self.acting_unit != null && self.acting_unit.position != null) {
+					var distance = this.parent_state.distance(this.q, this.r, self.acting_unit.position.q, self.acting_unit.position.r);
+
+					if ('max_range' in self.current_action && distance > self.current_action.max_range) {
+						this.graphic.hover = {
+							sprite: 'negative',
+							text: "too far",
+						};
+						return;
+					}
+					
+					if ('min_range' in self.current_action && distance < self.current_action.min_range) {
+						this.graphic.hover = {
+							sprite: 'negative',
+							text: "too close",
+						};
+						return;
+					}
+				}
+
+				if (!target.test(this, GAME_STATE.meta.local_player)) {
 					this.graphic.hover = {
 						sprite: 'negative',
 						text: target.error,
 					};
+				} else {
+					this.graphic.hover = {
+						sprite: 'positive',
+						text: self.current_action.key,
+					};
 				}
 			}
 		});
 
-		HOOKS.on('action:execute', function(data) {
-			if ('unit_id' in data && 'player_id' in data) {
-				var player = GAME_STATE.player(data.player_id);
-				var local_player = GAME_STATE.meta.local_player;
-				var unit = player.unit(data.unit_id);
-				var hex = unit.hex;
-
-				if (hex != null) {
-					if (player === local_player) {
-						hex.graphic.display = {
-							sprite: 'local',
-							text: this.text.past,
-						};
-					} else if (player.team !== local_player.team) {
-						hex.graphic.display = {
-							sprite: 'enemy',
-							text: this.text.past,
-						};
-					} else {
-						hex.graphic.display = {
-							sprite: 'ally',
-							text: this.text.past,
-						};
-					}
-				}
-			}
-		}, HOOKS.ORDER_AFTER);
-
+		// TODO: Find another opportunity to clear the board.
 		HOOKS.on('hex:sync', function() {
 			this.graphic.display = false;
 		});
 
-		return root;
+		HOOKS.on('action:execute', function(args) {
+			var state = args.state;
+			var tiles = this.affected_hexes(args.data, false);
+			var player = state.player(args.data.player_id);
+			var local_player = state.meta.local_player;
+
+			var sprite = null;
+			if (player === local_player) {
+				sprite = 'local';
+			} else if (player.team !== local_player.team) {
+				sprite = 'enemy';
+			} else {
+				sprite = 'ally';
+			}
+
+			for (var i in tiles) {
+				var tile = tiles[i];
+				
+				state.hex(tile.q, tile.r).graphic.display = {
+					sprite: sprite,
+					text: tile.title,
+				};
+			}
+		}, HOOKS.ORDER_AFTER);
+
+		HOOKS.on('dispatch:confirm', function(data) {
+			GAME_STATE.player(data.player_id).action_points = data.number;
+
+			if (data.player_id === GAME_STATE.meta.local_player.id) {
+				DEBUG.temp("Acting unit is", self.acting_unit);
+				if (self.acting_unit != null) {
+					self.acting_unit.last_action = GAME_STATE.meta.round;
+				}
+
+				clear_execution();
+			}
+		}, HOOKS.ORDER_EXECUTE);
+
+		HOOKS.on('dispatch:rejected', function(data) {
+			DEBUG.error("Rejected: "+data.message+' - '+MESSAGE.text[data.message]);
+			clear_execution();
+		}, HOOKS.ORDER_EXECUTE);
 	}
 );

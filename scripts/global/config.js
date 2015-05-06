@@ -2,43 +2,38 @@
 CONFIG = {};
 
 // ===== GENERAL ===== //
-CONFIG.is_client = (typeof window !== 'undefined');
-CONFIG.score_goal = 3;
+CONFIG.is_server = (typeof window === 'undefined');
+CONFIG.score_goal = 1;
+CONFIG.actions_per_turn = 3;
 CONFIG.default_player_count = 2;
 
 // ===== PORT ===== //
-CONFIG.port = {
-	http: 80,
-	socket: 80,
-};
-
-if (typeof process !== 'undefined') {
-	CONFIG.port.http = process.env.PORT || 3000;
-}
-
-// TODO: Refactor this.
-CONFIG.port.socket = CONFIG.port.http;
+CONFIG.port = 3000;
+/*if (typeof process !== 'undefined') {
+	CONFIG.port = process.env.PORT || 80;
+}*/
 
 // ===== CANVAS ===== //
 CONFIG.canvas = {
 	width: 800,
-	height: 600,
+	height: 700,
 };
 
 // ===== HEX ===== //
 CONFIG.hex = {
-	size: 30,
+	size: 36,
 };
 
 CONFIG.hex.width = 1.5 * CONFIG.hex.size;
 CONFIG.hex.height = Math.sqrt(3) * CONFIG.hex.size;
 CONFIG.hex.scale = 100 * CONFIG.hex.height / 80;
+CONFIG.canvas.scale = CONFIG.hex.size / 30;
 
 // ===== EDGE ===== //
 CONFIG.edge = {
 	offset: {
-		x: CONFIG.hex.width - 5,
-		y: CONFIG.hex.height - 30,
+		x: CONFIG.hex.width - (CONFIG.canvas.scale * 5),
+		y: CONFIG.hex.height - (CONFIG.canvas.scale * 30),
 	},
 };
 

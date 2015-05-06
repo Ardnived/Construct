@@ -12,13 +12,9 @@ define(
 			this.player_count = CONFIG.default_player_count;
 			this.round = 0;
 			this.ready_players = 0;
-
-			// These are used for responding to action requests on the server.
-			this.action_queue = [];
-			this.update_queue = {};
 		};
 
-		if (CONFIG.is_client) {
+		if (!CONFIG.is_server) {
 			Object.defineProperty(meta.prototype, 'local_player', {
 				get: function() {
 					return this._local_player;
@@ -30,6 +26,25 @@ define(
 			});
 		}
 
+		HOOKS.on('meta:sync', function() {
+			this.ready_players = 0;
+			this.round++;
+			DEBUG.temp("Increase round counter to", this.round);
+		}, HOOKS.ORDER_EXECUTE);
+
 		return root;
 	}
 );
+
+HOOKS.on('meta:data', function(args) {
+	var data = args.data;
+	data.type = 'meta';
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('count') != -1) {
+		data.number = this.player_count;
+	}
+
+	if (typeof args.player !== 'undefined') {
+		data.player_id = args.player.id;
+	}
+}, HOOKS.ORDER_EXECUTE);

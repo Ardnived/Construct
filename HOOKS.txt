@@ -1,0 +1,67 @@
+
+======= DISPATCH =======
+:connected		successfully connected to a client/server.
+:update			received a set of updates from the client/server.
+:rejected		the server rejected our request.
+
+======= GAME =======
+:action				the game has received an action update. TODO: Refactor this out, it doesn't work well.
+
+======= STATE =======
+:new				a new state was created.
+:sync				the round has ended.
+:update				execute a set of updates.
+
+======= META =======
+:new				a new state was created.
+:update				execute a set of updates.
+
+======= HEX =======
+:new				a new hex was created.
+:sync				the round has ended.
+:update				execute a set of updates.
+:change_type		the hex type has changed.
+:change_owner		the hex's owner has changed.
+:change_visibility	this hex's visibility has changed for one of the teams.
+:unit_gained		a unit has entered this hex.
+:unit_lost			a unit has left this hex.
+:mouse_over			mouse is over this hex.
+:mouse_out			mouse is no longer over this hex.
+:mouse_down			mouse has pressed a click on this hex.
+:mouse_up			mouse has depressed a click on this hex.
+:mouse_click		mouse has made a full click on this hex.
+
+======= EDGE =======
+:new				a new edge was created.
+:update				execute a set of updates.
+:change_active		the active state has changed.
+
+======= TEAM =======
+:new				a new team was created.
+:sync				the round has ended.
+:update				execute a set of updates.
+:change_points		the number of score points has changed.
+
+======= PLAYER =======
+:new				a new player was created.
+:sync				the round has ended.
+:update				execute a set of updates.
+:change_active		the player's actions points has changed between 0 and a non-0 value.
+:change_action_points	the quantity of action points has changed.
+
+======= UNIT =======
+:new				a new unit was created.
+:update				execute a set of updates.
+:change_type		the unit type has changed.
+:spawned			the unit has been moved onto a hex, from null space.
+:destroyed			the unit has been moved to null space.
+
+======= ACTION =======
+:prepare			acquire targets for this action.
+:queue				add this action (with given data) to the list of actions to execute at the end of the round.
+:execute			immediately execute this action.
+
+======= KEYPRESS =======
+:escape				the escape key was pressed.
+
+

@@ -59,7 +59,6 @@ define(
 		find: function(q, r) {
 			for (var i in this.keys) {
 				var direction = this[this.keys[i]];
-				//DEBUG.temp('test', direction, 'vs', q, ',', r);
 				
 				if (direction.offset.q === q && direction.offset.r === r) {
 					return direction;

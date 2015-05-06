@@ -1,14 +1,14 @@
 
 requirejs(
-	['shared/message', 'shared/util'],
-	function(MESSAGE, UTIL) {
+	['shared/message', 'shared/round', 'shared/util'],
+	function(MESSAGE, ROUND, UTIL) {
 		HOOKS.on('hex:sync', function(new_round) {
-			if (new_round % 5 === 0 && this.type != null && this.type.key === 'access') {
+			if (new_round % ROUND.DURATION_LONG === 0 && this.type != null && this.type.key === 'access') {
 				if (this.owner != null) {
-					this.owner.points += 1;
+					this.owner.team.points += 1;
 				}
 
-				if (!CONFIG.is_client) {
+				if (CONFIG.is_server) {
 					this.owner = null;
 					this.type = null;
 
@@ -25,15 +25,20 @@ requirejs(
 
 					chosen_hex.type = 'access';
 
-					MESSAGE.send('update', [{
-						type: 'hex',
-						position: [this.q, this.r],
-						hex_type: (this.type ? this.type.key : null),
-					}, {
-						type: 'hex',
-						position: [chosen_hex.q, chosen_hex.r],
-						hex_type: (chosen_hex.type ? chosen_hex.type.key : null),
-					}]);
+					var old_hex_data = {};
+					var new_hex_data = {};
+
+					HOOKS.trigger('hex:data', this, {
+						include: ['type'],
+						data: old_hex_data,
+					});
+
+					HOOKS.trigger('hex:data', chosen_hex, {
+						include: ['type'],
+						data: new_hex_data,
+					});
+
+					MESSAGE.send('update', [ old_hex_data, new_hex_data ]);
 				}
 			}
 		});
@@ -41,5 +46,6 @@ requirejs(
 );
 
 define({
+	key: 'access',
 	ownable: true,
 });

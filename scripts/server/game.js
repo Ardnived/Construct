@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'shared/directions', 'shared/state/team', 'server/actions_handler'],
-	function(MESSAGE, DIRECTIONS, TEAM) {
+	['shared/message', 'shared/util', 'shared/directions', 'shared/state/team', 'server/actions_handler', 'server/rout', 'server/sync'],
+	function(MESSAGE, UTIL, DIRECTIONS, TEAM) {
 		var object = {
 
 			reset: function(state, player_id) {
@@ -10,27 +10,14 @@ define(
 				// Add meta data to tell the player what his id is.
 				// This information MUST be added first,
 				// otherwise when the player gets the data they won't know when a player id refers to themselves.
-				data.push({
-					type: 'meta',
-					player_id: player_id,
-					number: state.meta.player_count,
-					// TODO: Send whatever units this player has.
+				var meta_data = {};
+				HOOKS.trigger('meta:data', state.meta, {
+					data: meta_data,
+					player: state.player(player_id),
 				});
+
+				data.push(meta_data);
 				// ===== ===== ===== =====
-
-				// Add all the hex data.
-				var hexes = state.hexes();
-				for (var key in hexes) {
-					var hex = hexes[key];
-
-					if (hex.type != null) {
-						data.push({
-							type: 'hex',
-							position: [hex.q, hex.r],
-							hex_type: hex.type.key,
-						});
-					}
-				}
 
 				// Add data for all players.
 				var players = state.players();
@@ -38,57 +25,56 @@ define(
 					var player = players[i];
 
 					if (!player.active) {
-						data.push({
-							type: 'player',
-							player_id: player.id,
-							active: player.active,
+						var player_data = {};
+						HOOKS.trigger('player:data', player, {
+							data: player_data
 						});
+
+						data.push(player_data);
 					}
 
 					var units = player.units();
 					for (var key in units) {
-						var unit = units[key];
+						var unit_data = {};
+						HOOKS.trigger('unit:data', units[key], {
+							data: unit_data,
+						});
 
-						var dat = {
-							type: 'unit',
-							unit_id: unit.id,
-							player_id: unit.owner.id,
-							unit_type: unit.type.key,
-						};
+						data.push(unit_data);
+					}
+				}
 
-						if (unit.position != null) {
-							dat.position = [unit.position.q, unit.position.r];
-						}
+				// Add all the hex data.
+				var hexes = state.hexes();
+				for (var key in hexes) {
+					var hex = hexes[key];
 
-						data.push(dat);
+					if (hex.type != null) {
+						var hex_data = {};
+						HOOKS.trigger('hex:data', hex, {
+							data: hex_data,
+							player: state.player(player_id),
+						});
+
+						data.push(hex_data);
 					}
 				}
 
 				// Add all the edge data.
 				var edges = state.edges();
 				for (var key in edges) {
-					var edge = edges[key];
-
-					var dat = {
-						type: 'edge',
-						positions: [
-							[edge.q1, edge.r1],
-							[edge.q2, edge.r2],
-						],
-						active: edge.active,
-					};
-
-					if (edge.cost != 1) {
-						dat.number = edge.cost;
-					}
-
-					data.push(dat);
+					var edge_data = {};
+					HOOKS.trigger('edge:data', edges[key], {
+						data: edge_data,
+					});
+					
+					data.push(edge_data);
 				}
 
 				// Check if the reply has contents.
 				if (data.length > 0) {
 					// If so, send the update back to the requestor.
-					MESSAGE.send('update', data, state.player(player_id).client);
+					MESSAGE.send('reset', data, state.player(player_id).client);
 				}
 			},
 		};
@@ -108,6 +94,7 @@ define(
 			var spawn_chance = 0.035;
 			var relay_chance = 0.025;
 			var access_chance = 0.03;
+			var accel_chance = 2.3;
 
 			for (var qN = this.min_q(); qN <= qMax; qN++) {
 				var rMin = this.min_r(qN);
@@ -147,7 +134,6 @@ define(
 								var r2 = r + DIRECTIONS[key].offset.r;
 								var edge = this.edge(q, r, q2, r2);
 								edge.active = true;
-								//edge.cost = (Math.random() < 0.2) ? 0 : 1;
 							}
 						}
 					}
@@ -174,68 +160,39 @@ define(
 					}
 				}
 			}
-		});
 
-		HOOKS.on('player:change_points', function() {
-			// TODO: This information could be transmitted a lot more efficiently.
-			MESSAGE.send('update', [{
-				type: 'player',
-				player_id: this.id,
-				number: this.points,
-			}]);
-		});
+			/* When it was enabled this was causing some serious weirdness.
+			var queue = [ this.hex(6, 1) ];
+			var decayed_chance = accel_chance;
 
-		// TODO: Fix this function.
-		HOOKS.on('hex:change_visibility', function(args) {
-			if (args.new_value <= TEAM.VISION_HIDDEN) {
-				return;
-			}
+			while (queue.length > 0 && decayed_chance > 0.2) {
+				var hex = queue.pop();
+				var chance = decayed_chance;
 
-			var data = {
-				type: 'hex',
-				position: [this.q, this.r],
-				player_id: (this.owner != null) ? this.owner.id : null,
-				units: {},
-				edges: [],
-			};
+				loop:
+				while (chance > 0) {
+					var keys = UTIL.shuffle(DIRECTIONS.keys);
 
-			var units = this.units();
-			for (var p in units) {
-				var owner = this.parent_state.player(p);
+					for (var i in keys) {
+						var direction = DIRECTIONS[keys[i]];
 
-				if (owner.team != args.team) {
-					var unit_group = [];
-					for (var u in units[p]) {
-						// TODO: Check if the unit is hidden.
-						unit_group.push(units[p][u].id);
-					}
+						if (Math.random() <= chance / Math.ceil(chance)) {
+							hex.edge(direction).cost = 0;
 
-					if (unit_group.length > 0) {
-						data.units[p] = unit_group;
+							var neighbour = hex.neighbour(direction);
+							if (neighbour != null) {
+								queue.push(neighbour);
+							}
+
+							chance -= 1;
+							break loop;
+						}	
 					}
 				}
-			}
 
-			for (var i in DIRECTIONS.keys) {
-				var key = DIRECTIONS.keys[i];
-				
-				if (this.edge(DIRECTIONS[key]).active) {
-					data.edges.push(key);
-				}
-			}
-
-			var players = this.parent_state.players();
-			for (var p in players) {
-				var player = players[p];
-				var clients = [];
-
-				if (player.team == args.team) {
-					clients.push(player.client);
-				}
-
-				MESSAGE.send('update', [data], player.client);
-			}
-		})
+				decayed_chance -= 0.2;
+			}*/
+		});
 
 		return object;
 	}

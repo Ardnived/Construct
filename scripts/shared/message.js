@@ -1,8 +1,8 @@
 
-var dispatch_path = 'server/dispatch';
+var dispatch_path = 'client/dispatch';
 
-if (CONFIG.is_client) {
-	dispatch_path = 'client/dispatch';
+if (CONFIG.is_server) {
+	dispatch_path = 'server/dispatch';
 }
 
 define(
@@ -38,22 +38,23 @@ define(
 		var keys = [
 			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', // Integers up to 10 can be used as keys.
 			'type', 'unit_id', 'player_id', 'action',
-			'position', 'positions', 'units', 'edges',
+			'position', 'positions', 'units', 'edges', 'traps',
 			'message',
-			'active', 'number',
+			'active', 'number', 'reveal',
 			'unit_type', 'hex_type',
 		];
 
 		var values = {
-			type: ['action', 'meta', 'hex', 'edge', 'player', 'unit'],
+			type: ['action', 'meta', 'hex', 'edge', 'player', 'unit', 'team'],
 			action: Object.keys(ACTIONS),
 			message: Object.keys(text),
 			unit_type: Object.keys(UNITS),
 			hex_type: Object.keys(STRUCTS),
 			edges: DIRECTIONS.keys,
+			traps: ['prism', 'monitor'],
 		};
 
-		var types = ['default', 'update', 'gameover', 'chat', 'rejected'];
+		var types = ['default', 'update', 'sync', 'reset', 'confirm', 'rejected', 'gameover', 'chat'];
 
 		var root = {
 			send: function(type, data, targets) {
@@ -70,8 +71,12 @@ define(
 
 						var msg = root.encode(type, data);
 
-						DEBUG.dispatch("Sending", type, data, "with length", msg.blocks);
-						dispatch.send(msg.binary, msg.length, targets);
+						//if (msg.blocks > 0) {
+							DEBUG.dispatch("Sending", type, data, "with length", msg.blocks);
+							dispatch.send(msg.binary, msg.length, targets);
+						//} else {
+						//	DEBUG.error("Didn't send data, because it was empty.");
+						//}
 				});	
 			},
 
@@ -120,16 +125,18 @@ define(
 		 */
 		message.prototype.encode = function(data, dictionary) {
 			if ( typeof data === 'undefined') {
-				data = this.data;
-				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
-
 				if (this.type == null) {
 					DEBUG.error("Encoding failed: Message type has not been set.");
 					return false;
 				}
 
+				data = this.data;
+				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
+
 				this.write(this.type, types);
 			}
+
+			DEBUG.parse("Encoding", this.type, toString.call(data), data);
 
 			if (this.binary === null) {
 				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
@@ -138,8 +145,6 @@ define(
 			if ( typeof dictionary === 'undefined') {
 				dictionary = keys;
 			}
-
-			DEBUG.parse("encoding", toString.call(data), data);
 
 			if (toString.call(data) === '[object Array]') {
 				this.write(ARRAY_OPEN);
@@ -198,8 +203,8 @@ define(
 				value = dictionary.indexOf(value);
 
 				if (value == -1) {
-					DEBUG.fatal("Unrecognized key on encode:", query, this.data);
 					DEBUG.parse(dictionary);
+					DEBUG.fatal("Unrecognized key on encode:", query, '\n', this.data, '\n', dictionary);
 					return;
 				}
 			}
@@ -273,7 +278,13 @@ define(
 					default:
 						switch (mode) {
 							case 'key':
-								key = this.read(this.binary[index], keys);
+								var jsonkey = jsonkeys[depth];
+								if (typeof values[jsonkey] !== 'undefined') {
+									key = this.read(this.binary[index], values[jsonkey]);
+								} else {
+									key = this.read(this.binary[index], keys);
+								}
+
 								mode = 'keyvalue';
 								DEBUG.parse("mode: keyvalue");
 								break;

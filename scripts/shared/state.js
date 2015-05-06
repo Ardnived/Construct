@@ -251,7 +251,6 @@ define(
 		};
 
 		HOOKS.on('state:sync', function() {
-			DEBUG.temp('--------- PROCESS ---------');
 			var active_player_count = 0;
 
 			var hexes = this.hexes();
@@ -274,7 +273,9 @@ define(
 				HOOKS.trigger('team:sync', teams[k], this.meta.round);
 			}
 
-			if (active_player_count <= 1 && !CONFIG.is_client) {
+			HOOKS.trigger('meta:sync', this.meta, this.meta.round);
+
+			if (active_player_count <= 1 && CONFIG.is_server) {
 				// If there's only one player left, that means they've won.
 				// TODO: Implement victory.
 				for (var i = this.meta.player_count - 1; i >= 0; i--) {
@@ -291,11 +292,17 @@ define(
 					}
 				}
 				
-				DEBUG.temp('========= GAME OVER =========');
-			} else {
-				DEBUG.temp('========= SYNC =========');
+				DEBUG.flow('========= GAME OVER =========');
 			}
 		}, HOOKS.ORDER_EXECUTE);
+
+		HOOKS.on('state:sync', function() {
+			DEBUG.flow('--------- PROCESSING TURN ---------');
+		}, HOOKS.ORDER_FIRST * 2);
+
+		HOOKS.on('state:sync', function() {
+			DEBUG.flow('--------- SYNCED ---------');
+		}, HOOKS.ORDER_LAST * 2);
 
 		return state;
 	}

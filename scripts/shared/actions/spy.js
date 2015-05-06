@@ -3,25 +3,36 @@ define(
 	['shared/targets', 'shared/util', 'shared/round', 'shared/state/team'],
 	function(TARGETS, UTIL, ROUND, TEAM) {
 		return {
+			key: 'spy',
 			targets: [{
 				test: TARGETS.hex,
 				error: "invalid",
 			}],
 			order: 0,
-			text: {
-				name: 'spy',
-				future: 'spying',
-				past: 'spied',
-			},
+			cost: 1,
 			execute: function(state, data) {
 				UTIL.require_properties(['positions', 'player_id'], data);
 				var hex = state.hex(data.positions[0][0], data.positions[0][1]);
-				var interval_key = ROUND.interval(state.meta.round, ROUND.DURATION_SHORT);
+				var interval_key = ROUND.interval(state.meta.round, ROUND.DURATION_LONG);
 
 				state.player(data.player_id).team.visibility(hex, interval_key, TEAM.VISION_FULL);
+			},
+			affected_hexes: function(data, future) {
+				UTIL.require_properties(['positions', 'position'], data);
 
-				return [];
-			}
+				return [{
+					title: 'source',
+					source: true,
+					hidden: true,
+					q: data.position[0],
+					r: data.position[1],
+				}, {
+					title: (future ? 'spying' : 'spied'),
+					hidden: true,
+					q: data.positions[0][0],
+					r: data.positions[0][1],
+				}];
+			},
 		};
 	}
 );

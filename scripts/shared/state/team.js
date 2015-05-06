@@ -20,6 +20,7 @@ define(
 		var team = function(parent_state, team_index) {
 			this.parent_state = parent_state;
 			this.id = team_index;
+			this._points = 0;
 			this._visibility = {};
 		};
 
@@ -88,16 +89,15 @@ define(
 						this._update_level(hex);
 					}
 
-					if (Object.keys(this._visibility[key]['reasons']).length <= 1) {
+					if (Object.keys(this._visibility[key]['reasons']).length < 1) {
 						if (old_value > root.VISION_HIDDEN) {
 							// When you leave a hex, keep this lingering interest. Incase something happens before the next sync.
 							this._visibility[key]['reasons'][ROUND.INTERVAL_NONE] = root.VISION_HIDDEN;
 							this._update_level(hex, root.VISION_HIDDEN);
-							DEBUG.temp("SET", key, "TO", root.VISION_HIDDEN);
 						} else {
 							delete this._visibility[key];
 						}
-					} 
+					}
 				}
 			}
 		};
@@ -126,7 +126,8 @@ define(
 					old_value: old_level,
 				});
 			}
-			DEBUG.temp("change visibility for", this.key, hex.key, "from", old_level, "to", new_level);
+			
+			DEBUG.temp("Update visibility for", this.key, '-', hex.key, "from", old_level, "to", new_level);
 		}
 
 		Object.defineProperty(team.prototype, 'key', {
@@ -134,6 +135,29 @@ define(
 				return root.key(this.id);
 			},
 			set: undefined,
+		});
+
+		Object.defineProperty(team.prototype, 'points', {
+			get: function() {
+				return this._points;
+			},
+			set: function(new_value) {
+				if (new_value != this._points) {
+					var old_points = this._points;
+					this._points = new_value;
+
+					if (this._points >= CONFIG.score_goal) {
+						for (var i = this.parent_state.meta.player_count - 1; i >= 0; i--) {
+							var player = this.parent_state.player(i);
+							if (player.team != this) {
+								player.playing = false;
+							}
+						}
+					}
+
+					HOOKS.trigger('team:change_points', this, old_points);
+				}
+			},
 		});
 
 		HOOKS.on('team:sync', function(current_round) {
@@ -174,3 +198,13 @@ define(
 		return root;
 	}
 );
+
+HOOKS.on('team:data', function(args) {
+	var data = args.data;
+	data.type = 'team';
+	data.team_id = this.id;
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('points') != -1) {
+		data.number = this.points;
+	}
+}, HOOKS.ORDER_EXECUTE);

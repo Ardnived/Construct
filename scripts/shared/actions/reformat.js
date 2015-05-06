@@ -3,13 +3,10 @@ define(
 	['shared/targets', 'shared/util'],
 	function(TARGETS, UTIL) {
 		return {
+			key: 'reformat',
 			targets: [],
 			order: 3,
-			text: {
-				name: 'reformat',
-				future: 'reformatting',
-				past: 'reformatted',
-			},
+			cost: 1,
 			execute: function(state, data) {
 				UTIL.require_properties(['player_id', 'unit_id'], data);
 
@@ -24,11 +21,17 @@ define(
 						}
 					}
 				}
+			},
+			affected_hexes: function(data, future) {
+				UTIL.require_properties(['position'], data);
 
-				return [
-					[unit.q, unit.r]
-				];
-			}
+				return [{
+					title: (future ? 'reformatting' : 'reformatted'),
+					source: true,
+					q: data.position[0],
+					r: data.position[1],
+				}];
+			},
 		};
 	}
 );

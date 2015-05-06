@@ -17,29 +17,42 @@ define(
 			this.id = index;
 			this.team = this.parent_state.team(index); // TODO: Implement teams
 			this.playing = true; // Indicates whether this player is still playing. False indicates that they have lost.
-			this._active = true; // TODO: Revaluate when this value should be set. Maybe null = spectator.
-			this._points = 0;
+			this._action_points = CONFIG.actions_per_turn;
 			this._units = [];
-			this._visibility = {};
 
 			// TODO: Find a better place to set this.
-			//this.unit(0).type = 'sniffer';
+			this.unit(0).type = 'sniffer';
 			this.unit(1).type = 'peeper';
 			this.unit(2).type = 'bouncer';
-			//this.unit(3).type = 'enforcer';
-			//this.unit(4).type = 'seeker';
+			this.unit(3).type = 'enforcer';
+			this.unit(4).type = 'seeker';
 			this.unit(5).type = 'cleaner';
 			this.unit(6).type = 'carrier';
 		};
 
 		Object.defineProperty(player.prototype, 'active', {
 			get: function() {
-				return this._active;
+				return this._action_points > 0;
 			},
 			set: function(new_value) {
-				if (this._active != new_value) {
-					this._active = new_value;
-					HOOKS.trigger('player:change_active', this);
+				this.action_points = (new_value ? CONFIG.actions_per_turn : 0);
+			},
+		});
+
+		Object.defineProperty(player.prototype, 'action_points', {
+			get: function() {
+				return this._action_points;
+			},
+			set: function(new_value) {
+				if (this._action_points != new_value) {
+					var old_value = this._action_points;
+					this._action_points = new_value;
+					HOOKS.trigger('player:change_action_points', this, old_value);
+
+					if (old_value > 0 != this.active) {
+						var old_active_value = (old_value > 0);
+						HOOKS.trigger('player:change_active', this, old_active_value);
+					}
 				}
 			},
 		});
@@ -49,28 +62,6 @@ define(
 				return root.key(this.id);
 			},
 			set: undefined,
-		});
-
-		Object.defineProperty(player.prototype, 'points', {
-			get: function() {
-				return this._points;
-			},
-			set: function(new_value) {
-				if (new_value != this._points) {
-					var old_points = this._points;
-					this._points = new_value;
-
-					if (this._points >= CONFIG.score_goal) {
-						for (var i = this.parent_state.meta.player_count - 1; i >= 0; i--) {
-							this.parent_state.player(i).playing = false;
-						}
-
-						this.playing = true;
-					}
-
-					HOOKS.trigger('player:change_points', this, old_points);
-				}
-			},
 		});
 
 		player.prototype.unit = function(unit_index) {
@@ -90,3 +81,13 @@ define(
 		return root;
 	}
 );
+
+HOOKS.on('player:data', function(args) {
+	var data = args.data;
+	data.type = 'player';
+	data.player_id = this.id;
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('active') != -1) {
+		data.active = this.active;
+	}
+}, HOOKS.ORDER_EXECUTE);

@@ -14,7 +14,7 @@ requirejs(
 						for (var unit_index in units[player_index]) {
 							var unit = units[player_index][unit_index];
 
-							if (unit.type.mobile && unit.type.key !== 'bouncer') {
+							if (unit.type.key !== 'bouncer') {
 								// TODO: Move the unit out of this hex.
 								var direction_of_move = DIRECTIONS.find(position.q - this.position.q, position.r - this.position.r);
 								var direction = direction_of_move;
@@ -45,7 +45,6 @@ requirejs(
 							var unit = units[player_index][unit_index];
 
 							if (unit.type.key === 'bouncer') {
-								DEBUG.temp("MOVING AT A BOUNCER");
 								allow = false;
 							}
 						}
@@ -54,13 +53,12 @@ requirejs(
 			}
 
 			return allow;
-		});
+		}, HOOKS.ORDER_VETO);
 	}
 );
 
 define({
-	reveals: true,
-	mobile: true,
+	key: 'bouncer',
 	move: 1,
 	actions: {
 		pushback: "prevent passage and reveal the hex of any program that tries to enter.",

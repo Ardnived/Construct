@@ -21,7 +21,11 @@ define(
 				}
 			}
 
-			document.getElementById('tooltip').innerHTML = "<b>position</b>: "+this.q+", "+this.r+"<br><b>units</b>: ["+unit_list.join(', ')+"]"+"<br><b>type</b>: "+(this.type != null ? this.type.key : "null");
+			document.getElementById('tooltip').innerHTML = 
+				"<b>position</b>: "+this.q+", "+this.r
+				+"<br><b>units</b>: ["+unit_list.join(', ')+"]"
+				+"<br><b>type</b>: "+(this.type != null ? this.type.key : "null")
+				+"<br><b>lockdown</b>: "+(this.lockdown ? "true" : "false");
 			// END temporary code.
 
 			if (self.selected_hex != null) {
@@ -85,36 +89,32 @@ define(
 			this.graphic.hover = false;
 		});
 
-		HOOKS.on('action:send', function(data) {
+		HOOKS.on('action:queue', function(args) {
+			var state = args.state;
+			var data = args.data;
+
 			//UTIL.require_properties(['player_id', 'unit_id', 'positions']);
-			var hex;
 
-			for (var i = data.positions.length - 1; i >= 0; i--) {
-				hex = GAME_STATE.hex(data.positions[i][0], data.positions[i][1]);
-				hex.graphic.display = {
-					sprite: 'local',
-					text: this.text.future,
-				};
-			}
+			DEBUG.temp('displaying action', args);
 
-			hex = GAME_STATE.player(data.player_id).unit(data.unit_id).hex;
-
-			if (hex != null) {
-				if (data.positions.length > 0) {
-					hex.graphic.display = {
-						sprite: 'local',
-						text: 'source',
-					};
-				} else {
-					hex.graphic.display = {
-						sprite: 'local',
-						text: this.text.future,
-					};
+			if ('player_id' in data && 'unit_id' in data) {
+				var unit = GAME_STATE.player(data.player_id).unit(data.unit_id);
+				if (unit.position != null) {
+					data.position = [unit.position.q, unit.position.r];
 				}
 			}
+			
+			var tiles = this.affected_hexes(data, true);
 
-			return data;
-		});
+			for (var i in tiles) {
+				var tile = tiles[i];
+
+				state.hex(tile.q, tile.r).graphic.display = {
+					sprite: 'local',
+					text: tile.title,
+				};
+			}
+		}, HOOKS.ORDER_LAST);
 
 		HOOKS.on('hex:mouse_down', function(event) {
 			var local_player = this.parent_state.meta.local_player;
@@ -149,15 +149,10 @@ define(
 						var unit = self.selected_hex.unit(player_id);
 
 						if (unit != null) {
-							var data = {
-								type: 'action',
-								action: 'move',
-								player_id: player_id,
+							HOOKS.trigger('action:prepare', MOVE, {
 								unit_id: unit.id,
-								positions: [[this.q, this.r]],
-							};
-
-							MESSAGE.send('update', HOOKS.filter('action:send', MOVE, data));
+								targets: [this],
+							});
 						}
 					}
 				}

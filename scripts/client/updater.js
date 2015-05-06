@@ -1,12 +1,15 @@
 
 requirejs(
-	['shared/actions/all', 'shared/util', 'shared/directions'],
-	function(ACTIONS, UTIL, DIRECTIONS) {
+	['shared/actions/all', 'shared/util', 'shared/directions', 'shared/round'],
+	function(ACTIONS, UTIL, DIRECTIONS, ROUND) {
 		HOOKS.on('state:update', function(updates) {
+			DEBUG.temp("doing state:update", updates);
+
 			for (var i in updates) {
 				var data = updates[i];
 				var object = null;
 				var hook = data.type+':update';
+				DEBUG.temp("doing", "#"+i, hook, data);
 
 				switch (data.type) {
 					case 'hex':
@@ -22,6 +25,11 @@ requirejs(
 						object = this.player(data.player_id);
 						DEBUG.flow('execute', hook, data, object);
 						break;
+					case 'team':
+						UTIL.require_properties(['team_id'], data);
+						object = this.team(data.team_id);
+						DEBUG.flow('execute', hook, data, object);
+						break;
 					case 'unit':
 						UTIL.require_properties(['player_id', 'unit_id'], data);
 						object = this.player(data.player_id).unit(data.unit_id);
@@ -33,10 +41,8 @@ requirejs(
 						break;
 					case 'action':
 						UTIL.require_properties(['action'], data);
-						hook = 'action:execute';
-						object = ACTIONS[data.action];
-						DEBUG.flow('execute', hook, data, object);
-						break;
+						ACTIONS.execute(data.action, GAME_STATE, data);
+						continue;
 					default:
 						// Do nothing
 						break;
@@ -59,6 +65,10 @@ requirejs(
 				this.owner = data.player_id;
 			}
 
+			if ('active' in data) {
+				this.lockdown = !data.active;
+			}
+
 			if ('units' in data) {
 				// When we receive this field, we take that to indicate a complete list of known units at this hex.
 				// Therefore remove any previous impressions of what might exist at this hex.
@@ -69,11 +79,9 @@ requirejs(
 							var unit = existing_units[p][i];
 
 							if (p in data.units && unit.id in data.units[p]) {
-								DEBUG.temp('unit', unit.key, 'is already present');
 								var index = data.units[p].indexOf(unit.id);
 								delete data.units[p][index];
 							} else {
-								DEBUG.temp('unit', unit.key, 'is being removed');
 								unit.position = null;
 							}
 						}
@@ -86,11 +94,21 @@ requirejs(
 					for (var i in data.units[p]) {
 						var unit = player.unit(data.units[p][i]);
 
-						DEBUG.temp('unit', unit.key, 'is being added');
 						unit.position = {
 							q: this.q, 
 							r: this.r,
 						};
+					}
+				}
+			}
+
+			if ('traps' in data) {
+				this._trap = {}; // TODO: Fix this private variable call.
+				
+				for (var trap_key in data.traps) {
+					for (var i = data.traps[trap_key].length - 1; i >= 0; i--) {
+						var team_id = data.traps[trap_key][i];
+						this.traps(trap_key, team_id, true);
 					}
 				}
 			}
@@ -100,6 +118,13 @@ requirejs(
 					var key = DIRECTIONS.keys[i];
 					this.edge(DIRECTIONS[key]).active = (data.edges.indexOf(key) !== -1);
 				}
+			}
+
+			if ('reveal' in data) {
+				var duration = data.reveal[0];
+				var level = data.reveal[1];
+				var interval = ROUND.interval(this.parent_state.meta.round, duration);
+				GAME_STATE.meta.local_player.team.visibility(this, interval, level);
 			}
 		}, HOOKS.ORDER_EXECUTE);
 
@@ -116,6 +141,12 @@ requirejs(
 		HOOKS.on('player:update', function(data) {
 			if ('active' in data) {
 				this.active = data.active;
+			}
+		}, HOOKS.ORDER_EXECUTE);
+
+		HOOKS.on('team:update', function(data) {
+			if ('number' in data) {
+				this.points = data.number;
 			}
 		}, HOOKS.ORDER_EXECUTE);
 
@@ -144,11 +175,14 @@ requirejs(
 			}
 		}, HOOKS.ORDER_EXECUTE);
 
-		HOOKS.on('action:execute', function(data) {
+		HOOKS.on('action:execute', function(args) {
+			var data = args.data;
+			var state = args.state;
+
 			if ('position' in data) {
 				UTIL.require_properties(['player_id', 'unit_id'], data);
 
-				var unit = GAME_STATE.player(data.player_id).unit(data.unit_id);
+				var unit = state.player(data.player_id).unit(data.unit_id);
 				if (unit != null && ((unit.position == null && data.position != null) || (unit.position.q != data.position[0] || unit.position.r != data.position[1]))) {
 					DEBUG.error("Executing action, but the unit position was corrected.", data);
 					unit.position = {
@@ -157,8 +191,6 @@ requirejs(
 					};
 				}
 			}
-
-			this.execute(GAME_STATE, data);
-		}, HOOKS.ORDER_EXECUTE);
+		}, HOOKS.ORDER_BEFORE);
 	}
 );

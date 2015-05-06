@@ -60,3 +60,20 @@ define(
 		return root;
 	}
 );
+
+HOOKS.on('edge:data', function(args) {
+	var data = args.data;
+	data.type = 'edge';
+	data.positions = [
+		[this.q1, this.r1],
+		[this.q2, this.r2],
+	];
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('active') != -1) {
+		data.active = this.active;
+	}
+
+	if (typeof args.include === 'undefined' || args.include.indexOf('cost') != -1) {
+		data.number = this.cost;
+	}
+}, HOOKS.ORDER_EXECUTE);

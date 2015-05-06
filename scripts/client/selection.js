@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'client/actions', 'shared/actions/all', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
-	function(MESSAGE, ACTIONS, ACTION_LIST, GRAPHIC, BUTTON, TEXT, CANVAS) {
+	['shared/message', 'shared/actions/all', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
+	function(MESSAGE, ACTION_LIST, GRAPHIC, BUTTON, TEXT, CANVAS) {
 		var self = {
 			selected_hex: null,
 			graphic: new GRAPHIC(CANVAS.image.cursor, {
@@ -82,9 +82,10 @@ define(
 
 		HOOKS.on('ability:mouse_click', function() {
 			var local_player_id = GAME_STATE.meta.local_player.id;
-			var unit_id = self.selected_hex.unit(local_player_id).id;
 
-			ACTIONS.execute(this.action, unit_id);
+			HOOKS.trigger('action:prepare', ACTION_LIST[this.action], {
+				unit_id: self.selected_hex.unit(local_player_id).id,
+			});
 		});
 
 		HOOKS.on('hex:mouse_down', function(event) {
@@ -130,8 +131,8 @@ define(
 		});
 
 		// TODO: Find a more efficient way to do this.
-		HOOKS.on('unit:moved', function(old_position) {
-			if (self.selected_hex == old_position || (self.selected_hex != null && old_position != null && self.selected_hex.q === old_position.q && self.selected_hex.r === old_position.r)) {
+		HOOKS.on('unit:move', function(args) {
+			if (self.selected_hex == args.old_position || (self.selected_hex != null && args.old_position != null && self.selected_hex.q === args.old_position.q && self.selected_hex.r === args.old_position.r)) {
 				// TODO: This is duplicate code with other code elsewhere in this file.
 				self.graphic.visible = false;
 
@@ -141,6 +142,6 @@ define(
 					ability.description.text = false;
 				}
 			}
-		});
+		}, HOOKS.ORDER_LAST);
 	}
 );

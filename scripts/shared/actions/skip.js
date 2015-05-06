@@ -3,12 +3,13 @@ define(
 	['shared/targets', 'shared/util'],
 	function(TARGETS, UTIL) {
 		return {
+			key: 'skip',
 			targets: [],
 			order: 1,
-			check_for_unit: false,
-			execute: function(state, data) {
-				return [];
-			}
+			cost: 1,
+			globally_available: true,
+			execute: function() {},
+			affected_hexes: function() { return []; },
 		};
 	}
 );
