@@ -34,7 +34,7 @@ HOOKS.on('unit:move', function(args) {
 		var hex = this.parent_state.hex(args.new_position.q, args.new_position.r);
 		var traps = hex.traps('prism');
 
-		for (var i = traps.length - 1; i >= 0; i--) {
+		for (var i in traps) {
 			var team_id = traps[i];
 
 			if (team_id !== this.owner.team.id) {

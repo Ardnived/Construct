@@ -1,6 +1,7 @@
 
 define(
-	function() {
+	[CONFIG.platform+'/database'],
+	function(DATABASE) {
 		var root = {
 			create: function(parent_state, q1, r1, q2, r2) {
 				return HOOKS.trigger('edge:new', new edge(parent_state, q1, r1, q2, r2));
@@ -34,8 +35,8 @@ define(
 			this.r1 = r1;
 			this.q2 = q2;
 			this.r2 = r2;
-			this.cost = 1; // The movement cost of traversing this edge.
-			this._active = false;
+			this._cost = DATABASE.integer(this, 'cost', 1); // The movement cost of traversing this edge.
+			this._active = DATABASE.bool(this, 0, false);
 		};
 
 		Object.defineProperty(edge.prototype, 'key', {
@@ -45,13 +46,25 @@ define(
 			set: undefined,
 		});
 
-		Object.defineProperty(edge.prototype, 'active', {
+		Object.defineProperty(edge.prototype, 'cost', {
 			get: function() {
-				return this._active;
+				return this._cost.get();
 			},
 			set: function(new_value) {
-				if (new_value != this._active) {
-					this._active = new_value;
+				if (new_value != this.cost) {
+					this._cost.set(new_value);
+					HOOKS.trigger('edge:change_active', this);
+				}
+			},
+		});
+
+		Object.defineProperty(edge.prototype, 'active', {
+			get: function() {
+				return this._active.get();
+			},
+			set: function(new_value) {
+				if (new_value != this.active) {
+					this._active.set(new_value);
 					HOOKS.trigger('edge:change_active', this);
 				}
 			},

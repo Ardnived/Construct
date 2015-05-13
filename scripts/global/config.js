@@ -2,7 +2,7 @@
 CONFIG = {};
 
 // ===== GENERAL ===== //
-CONFIG.is_server = (typeof window === 'undefined');
+CONFIG.platform = (typeof window === 'undefined') ? 'server' : 'client';
 CONFIG.score_goal = 1;
 CONFIG.actions_per_turn = 3;
 CONFIG.default_player_count = 2;

@@ -27,7 +27,7 @@ define(
 			},
 			set: function(new_value) {
 				if (typeof new_value !== 'string') {
-					debug.fatal("Tried to set unit type as", new_value);
+					DEBUG.fatal("Tried to set unit type as", new_value);
 				} else {
 					var old_value = this._type;
 					this._type = UNITS[new_value];

@@ -15,7 +15,7 @@ define(
 			check_for_unit: false,
 			execute: function(state, data) {
 				// We require some special logic here because the client has no idea what tile to reveal without input from the server.
-				if (CONFIG.is_server) {
+				if (CONFIG.platform === 'server') {
 					UTIL.require_properties(['player_id', 'unit_id'], data);
 					var unit = state.player(data.player_id).unit(data.unit_id);
 

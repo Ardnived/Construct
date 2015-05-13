@@ -1,2 +1,3 @@
 .project
+*.rdb
 node_modules/*

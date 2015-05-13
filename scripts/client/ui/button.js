@@ -45,6 +45,7 @@ define(
 
 		button.prototype._attr = PARENT.prototype.attr;
 
+		// TODO: We are unintentionally modifying the original PARENT.prototype object! Unless requirejs passes by value.
 		button.prototype.attr = function(attr) {
 			if (typeof attr !== 'undefined' && 'active' in attr) {
 				this.active = attr.active;

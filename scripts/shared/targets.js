@@ -7,7 +7,7 @@ define(
 			},
 			vacant: function(hex, player) {
 				return root.hex(hex, player)
-					&& hex.unit(player.id) == null;
+					&& hex.unit(player) == null;
 			},
 			traversable: function(hex, player) {
 				return root.vacant(hex, player)

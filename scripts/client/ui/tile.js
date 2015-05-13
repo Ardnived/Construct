@@ -79,7 +79,7 @@ define(
 					if (typeof this._hover === 'object' && 'text' in this._hover) {
 						this._tooltip.text = this._hover.text;
 					} else {
-						var unit = this._hex.unit(GAME_STATE.meta.local_player.id);
+						var unit = this._hex.unit(GAME_STATE.meta.local_player);
 
 						if (unit != null) {
 							this._tooltip.text = unit.type.key;

@@ -145,8 +145,7 @@ define(
 
 					// TODO: Move this to somewhere more appropriate.
 					if (self.selected_hex != null) {
-						var player_id = this.parent_state.meta.local_player.id;
-						var unit = self.selected_hex.unit(player_id);
+						var unit = self.selected_hex.unit(this.parent_state.meta.local_player);
 
 						if (unit != null) {
 							HOOKS.trigger('action:prepare', MOVE, {

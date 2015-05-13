@@ -27,7 +27,7 @@ define(
 			}
 		};
 
-		if (CONFIG.is_server) {
+		if (CONFIG.platform === 'server') {
 			HOOKS.on('player:change_active', function() {
 				if (this.active == false) {
 					var state = this.parent_state;

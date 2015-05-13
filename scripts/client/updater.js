@@ -75,30 +75,24 @@ requirejs(
 				var existing_units = this.units();
 				for (var p in existing_units) {
 					if (p != this.parent_state.meta.local_player.id) {
-						for (var i in existing_units[p]) {
-							var unit = existing_units[p][i];
+						var unit = existing_units[p];
 
-							if (p in data.units && unit.id in data.units[p]) {
-								var index = data.units[p].indexOf(unit.id);
-								delete data.units[p][index];
-							} else {
-								unit.position = null;
-							}
+						if (p in data.units && unit.id == data.units[p]) {
+							delete data.units[p];
+						} else {
+							unit.position = null;
 						}
 					}
 				}
 
 				for (var p in data.units) {
 					var player = this.parent_state.player(p);
+					var unit = player.unit(data.units[p]);
 
-					for (var i in data.units[p]) {
-						var unit = player.unit(data.units[p][i]);
-
-						unit.position = {
-							q: this.q, 
-							r: this.r,
-						};
-					}
+					unit.position = {
+						q: this.q, 
+						r: this.r,
+					};
 				}
 			}
 

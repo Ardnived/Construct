@@ -1,10 +1,4 @@
 
-var dispatch_path = 'client/dispatch';
-
-if (CONFIG.is_server) {
-	dispatch_path = 'server/dispatch';
-}
-
 define(
 	['shared/actions/all', 'shared/units/all', 'shared/structs/all', 'shared/directions'],
 	function(ACTIONS, UNITS, STRUCTS, DIRECTIONS) {
@@ -59,7 +53,7 @@ define(
 		var root = {
 			send: function(type, data, targets) {
 				requirejs(
-					[dispatch_path], 
+					[CONFIG.platform+'/dispatch'], 
 					function(dispatch) {
 						if (typeof type === 'undefined') {
 							DEBUG.error("Cannot dispatch message with undefined type.");

@@ -275,7 +275,7 @@ define(
 
 			HOOKS.trigger('meta:sync', this.meta, this.meta.round);
 
-			if (active_player_count <= 1 && CONFIG.is_server) {
+			if (active_player_count <= 1 && CONFIG.platform === 'server') {
 				// If there's only one player left, that means they've won.
 				// TODO: Implement victory.
 				for (var i = this.meta.player_count - 1; i >= 0; i--) {

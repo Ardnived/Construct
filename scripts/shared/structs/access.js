@@ -8,7 +8,7 @@ requirejs(
 					this.owner.team.points += 1;
 				}
 
-				if (CONFIG.is_server) {
+				if (CONFIG.platform === 'server') {
 					this.owner = null;
 					this.type = null;
 

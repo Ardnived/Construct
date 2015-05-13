@@ -37,14 +37,7 @@ requirejs(
 					var owner = this.parent_state.player(p);
 
 					if (owner.team != args.player.team) {
-						var unit_group = [];
-						for (var u in units[p]) {
-							unit_group.push(units[p][u].id);
-						}
-
-						if (unit_group.length > 0) {
-							data.units[p] = unit_group;
-						}
+						data.units[p] = units[p].id;
 					}
 				}
 			}
@@ -77,15 +70,13 @@ requirejs(
 					}
 				}
 			}
-
-			DEBUG.temp("Got hex data for", this.key, ":", args);
 		}, HOOKS.ORDER_EXECUTE);
 	}
 );
 
 define(
-	['shared/structs/all', 'shared/round'],
-	function(STRUCTS, ROUND) {
+	['shared/structs/all', 'shared/round', CONFIG.platform+"/database"],
+	function(STRUCTS, ROUND, DATABASE) {
 		var root = {
 			create: function(parent_state, q, r) {
 				return HOOKS.trigger('hex:new', new hex(parent_state, q, r));
@@ -114,22 +105,36 @@ define(
 			this.parent_state = parent_state;
 			this.q = q;
 			this.r = r;
-			this._lockdown = false;
-			this._type = null;
-			this._owner = null;
-			this._units = {};
-			this._traps = {};
+
+			this._type     = DATABASE.string(this, 'type');
+			this._owner    = DATABASE.integer(this, 'owner');
+			this._lockdown = DATABASE.bool(this, 0, false);
+			this._units    = DATABASE.hash(this, 'units');
+			this._traps    = DATABASE.hash(this, 'traps');
 		};
+
+		Object.defineProperty(hex.prototype, 'key', {
+			get: function() {
+				return root.key(this.q, this.r);
+			},
+			set: undefined,
+		});
 
 		Object.defineProperty(hex.prototype, 'type', {
 			get: function() {
-				return this._type;
+				var type_key = this._type.get();
+
+				if (type_key != null) {
+					return STRUCTS[type_key];
+				} else {
+					return null;
+				}
 			},
 			set: function(new_value) {
 				var old_type_key = null;
 
-				if (this._type != null) {
-					old_type_key = this._type.key;
+				if (this.type != null) {
+					old_type_key = this.type.key;
 				}
 
 				if (new_value != old_type_key) {
@@ -139,12 +144,7 @@ define(
 						return;
 					}
 
-					if (new_value == null) {
-						this._type = null;
-					} else  {
-						this._type = STRUCTS[new_value];
-					}
-
+					this._type.set(new_value);
 					HOOKS.trigger('hex:change_type', this, old_type_key);
 				}
 			},
@@ -152,73 +152,64 @@ define(
 
 		Object.defineProperty(hex.prototype, 'owner', {
 			get: function() {
-				return this._owner;
+				var player_id = this._owner.get();
+
+				if (player_id != null) {
+					return this.parent_state.player(player_id);
+				} else {
+					return null;
+				}
 			},
 			set: function(new_value) {
-				if (new_value == null) {
-					this._owner = null;
-					return;
-				}
-
-				if (typeof new_value === 'object' && new_value.id != null) {
+				if (typeof new_value === 'object' && new_value != null && new_value.id != null) {
 					new_value = new_value.id;
 				}
 
-				if (typeof new_value !== 'number') {
-					debug.fatal("Tried to set unit type as", new_value);
+				if (typeof new_value !== 'number' && new_value != null) {
+					DEBUG.fatal("Tried to set hex owner as", new_value);
 				} else if (this._owner != new_value) {
-					var old_owner = this._owner;
-					this._owner = this.parent_state.player(new_value);
+					var old_owner = this.owner;
+					this._owner.set(new_value);
 					HOOKS.trigger('hex:change_owner', this, old_owner);
 				}
 			},
 		});
 
-		Object.defineProperty(hex.prototype, 'key', {
-			get: function() {
-				return root.key(this.q, this.r);
-			},
-			set: undefined,
-		});
-
 		Object.defineProperty(hex.prototype, 'lockdown', {
 			get: function() {
-				return this._lockdown;
+				return this._lockdown.get();
 			},
 			set: function(new_value) {
 				DEBUG.temp("Change lockdown for", this.key, "to", new_value)
 				if (this._lockdown != new_value) {
-					var old_lockdown_value = this._lockdown;
-					this._lockdown = new_value;
+					var old_lockdown_value = this.lockdown;
+					this._lockdown.set(new_value);
 					HOOKS.trigger('hex:change_lockdown', this, old_lockdown_value);
 				}
 			},
 		});
 
-		hex.prototype.unit = function(player_id) {
-			if (player_id != null) {
-				if (typeof player_id === 'object' && player_id.id != null) {
-					player_id = player_id.id;
-				}
-				
-				for (var key in this._units[player_id]) {
-					return this._units[player_id][key];
-				}
-			}
+		hex.prototype.unit = function(player) {
+			if (player == null) return null;
 
-			return null;
+			var unit_index = this._units.get(player.id);
+			if (unit_index == null) {
+				return null;
+			} else {
+				return player.unit(unit_index);
+			}
 		};
 
-		hex.prototype.units = function(player_id) {
-			if (typeof player_id === 'object' && player_id.id != null) {
-				player_id = player_id.id;
+		hex.prototype.units = function() {
+			var units = this._units.get();
+
+			for (var k in units) {
+				var player_id = parseInt(k);
+				var unit_id = parseInt(units[k])
+				units[player_id] = this.parent_state.player(player_id).unit(unit_id);
 			}
-			
-			if (typeof player_id !== 'undefined') {
-				return this._units[player_id];
-			} else {
-				return this._units;
-			}
+
+			return units;
 		};
 		
 		hex.prototype.edge = function(direction) {
@@ -229,38 +220,42 @@ define(
 			return this.parent_state.hex(this.q + direction.offset.q, this.r + direction.offset.r);
 		};
 
-		hex.prototype.traps = function(key, team_id, value) {
-			if (typeof key === 'undefined') {
-				return this._traps;
-			} else if (!(key in this._traps)) {
-				this._traps[key] = [];
+		hex.prototype.traps = function(trap_key, team_id, value) {
+			if (typeof trap_key === 'undefined') {
+				return this._traps.get_list();
 			}
+
+			var teams_list = this._traps.get_list(trap_key);
 
 			if (typeof team_id === 'undefined') {
-				return this._traps[key];
+				return teams_list;
 			}
 
-			var trap_index = this._traps[key].indexOf(team_id);
+			var trap_index = teams_list.indexOf(team_id);
 
 			if (typeof value === 'undefined') {
 				return trap_index !== -1;
 			} else if (value == false && trap_index !== -1) {
-				delete this._traps[key][trap_index];
+				delete teams_list[trap_index];
+				this._traps.set_list(trap_key, teams_list);
+
 				HOOKS.trigger('hex:trap_lost', this, {
-					key: key,
+					key: trap_key,
 					team: this.parent_state.team(team_id),
 				});
 			} else {
-				this._traps[key].push(team_id);
+				teams_list.push(team_id);
+				this._traps.set_list(trap_key, teams_list);
+
 				HOOKS.trigger('hex:trap_gained', this, {
-					key: key,
+					key: trap_key,
 					team: this.parent_state.team(team_id),
 				});
 			}
 		};
 
 		hex.prototype.clear_traps = function() {
-			this._traps = {};
+			this._traps.del();
 		};
 
 		HOOKS.on('hex:sync', function(new_round) {
@@ -301,7 +296,7 @@ HOOKS.on('unit:move', function(args) {
 
 	if (args.old_position != null) {
 		hex = this.parent_state.hex(args.old_position.q, args.old_position.r);
-		delete hex._units[this.owner.id][this.id];
+		hex._units.del(this.owner.id);
 
 		if (hex.type != null && hex.type.ownable && this.owner === hex.owner) {
 			var units = hex.units();
@@ -322,15 +317,11 @@ HOOKS.on('unit:move', function(args) {
 	if (args.new_position != null) {
 		hex = this.parent_state.hex(args.new_position.q, args.new_position.r);
 
-		if (!(this.owner.id in hex._units)) {
-			hex._units[this.owner.id] = {};
-		}
-
 		if (hex.type != null && hex.type.ownable && hex.unit(hex.owner) == null) {
 			hex.owner = this.owner;
 		}
 
-		hex._units[this.owner.id][this.id] = this;
+		hex._units.set(this.owner.id, this.id);
 		HOOKS.trigger('hex:unit_gained', hex, this);
 	}
 }, HOOKS.ORDER_AFTER);

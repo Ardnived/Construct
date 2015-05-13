@@ -14,7 +14,7 @@ define(
 			this.ready_players = 0;
 		};
 
-		if (!CONFIG.is_server) {
+		if (CONFIG.platform === 'client') {
 			Object.defineProperty(meta.prototype, 'local_player', {
 				get: function() {
 					return this._local_player;

@@ -81,16 +81,13 @@ define(
 		});
 
 		HOOKS.on('ability:mouse_click', function() {
-			var local_player_id = GAME_STATE.meta.local_player.id;
-
 			HOOKS.trigger('action:prepare', ACTION_LIST[this.action], {
-				unit_id: self.selected_hex.unit(local_player_id).id,
+				unit_id: self.selected_hex.unit(GAME_STATE.meta.local_player).id,
 			});
 		});
 
 		HOOKS.on('hex:mouse_down', function(event) {
-			var local_player = this.parent_state.meta.local_player;
-			var local_unit = this.unit(local_player.id);
+			var local_unit = this.unit(this.parent_state.meta.local_player);
 
 			if (event.mouseButton === Crafty.mouseButtons.LEFT) {
 				if (local_unit != null) {
