@@ -7,7 +7,7 @@ define(
 			no_ready_check: true,
 		});
 
-		REDIS.debug_mode = true;
+		//REDIS.debug_mode = true;
 		client.auth(url.auth.split(":")[1]);
 
 		// TODO: Remove this testing code.
