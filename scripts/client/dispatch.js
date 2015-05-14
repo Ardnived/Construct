@@ -42,7 +42,7 @@ define(
 
 		return {
 			init: function(port) {
-				DEBUG.dispatch("Connecting to server...");
+				DEBUG.dispatch("Connecting to server on port", port, "...");
 				socket = new BinaryClient("ws://"+location.hostname+":"+port+"/");
 				socket.on('stream', on_message);
 				socket.on('error', on_error);

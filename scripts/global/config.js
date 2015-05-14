@@ -8,7 +8,7 @@ CONFIG.actions_per_turn = 3;
 CONFIG.default_player_count = 2;
 
 // ===== PORT ===== //
-CONFIG.port = 3000;
+CONFIG.port = 80;
 if (typeof process !== 'undefined') {
 	CONFIG.port = process.env.PORT || 80;
 }
