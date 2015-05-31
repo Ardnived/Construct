@@ -1,7 +1,14 @@
 
+if (typeof process === 'undefined') {
+	process = {
+		env: {},
+	};
+}
+
 CONFIG = {};
 
 // ===== GENERAL ===== //
+CONFIG.environment = process.env.TIER || "local";
 CONFIG.platform = (typeof window === 'undefined') ? 'server' : 'client';
 CONFIG.score_goal = 3;
 CONFIG.actions_per_turn = 3;
@@ -9,7 +16,10 @@ CONFIG.default_player_count = 2;
 
 // ===== PORT ===== //
 CONFIG.port = 80;
-if (typeof process !== 'undefined') {
+
+if (CONFIG.environment == 'local') {
+	CONFIG.port = 3000;
+} else if (typeof process !== 'undefined') {
 	CONFIG.port = process.env.PORT || 80;
 }
 

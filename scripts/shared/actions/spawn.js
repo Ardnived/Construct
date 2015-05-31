@@ -1,12 +1,12 @@
 
 define(
-	['shared/targets', './move', 'shared/util'],
-	function(TARGETS, MOVE, UTIL) {
+	['shared/conditions', './move', 'shared/util'],
+	function(CONDITIONS, MOVE, UTIL) {
 		return {
 			key: 'spawn',
 			targets: [{
-				test: TARGETS.spawnzone,
-				error: 'needs uplink',
+				conditions: [CONDITIONS.vacant, CONDITIONS.spawnzone],
+				error: 'needs empty uplink',
 			}],
 			order: 5,
 			cost: 1,

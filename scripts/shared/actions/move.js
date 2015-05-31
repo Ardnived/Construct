@@ -1,11 +1,11 @@
 
 define(
-	['shared/targets', 'shared/util', 'shared/round', 'shared/state/team'],
-	function(TARGETS, UTIL, ROUND, TEAM) {
+	['shared/conditions', 'shared/util', 'shared/round', 'shared/state/team'],
+	function(CONDITIONS, UTIL, ROUND, TEAM) {
 		return {
 			key: 'move',
 			targets: [{
-				test: TARGETS.traversable,
+				conditions: [CONDITIONS.vacant, CONDITIONS.traversable],
 				error: "blocked",
 			}],
 			order: 1,

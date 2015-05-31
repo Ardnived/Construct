@@ -21,8 +21,8 @@ requirejs(
 );
 
 define(
-	['shared/targets', 'shared/util', 'shared/state/team'],
-	function(TARGETS, UTIL, TEAM) {
+	['shared/conditions', 'shared/util', 'shared/state/team'],
+	function(CONDITIONS, UTIL, TEAM) {
 		return {
 			key: 'monitor',
 			targets: [],

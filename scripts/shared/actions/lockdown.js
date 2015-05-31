@@ -1,11 +1,11 @@
 
 define(
-	['shared/targets', 'shared/util'],
-	function(TARGETS, UTIL) {
+	['shared/conditions', 'shared/util'],
+	function(CONDITIONS, UTIL) {
 		return {
 			key: 'lockdown',
 			targets: [{
-				test: TARGETS.hex,
+				conditions: [/* any */],
 				error: "invalid",
 			}],
 			order: 4,

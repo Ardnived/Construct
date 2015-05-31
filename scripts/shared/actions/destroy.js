@@ -1,12 +1,12 @@
 
 define(
-	['shared/targets', 'shared/util'],
-	function(TARGETS, UTIL) {
+	['shared/conditions', 'shared/util'],
+	function(CONDITIONS, UTIL) {
 		return {
 			key: 'destroy',
 			targets: [{
-				test: TARGETS.vacant,
-				error: "invalid",
+				conditions: [CONDITIONS.enemy],
+				error: "must target enemy",
 			}],
 			order: 3,
 			max_range: 1,

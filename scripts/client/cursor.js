@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'shared/actions/move', 'client/ui/graphic', 'client/ui/text', 'client/canvas'],
-	function(MESSAGE, MOVE, GRAPHIC, TEXT, CANVAS) {
+	['shared/message', 'shared/actions/all', 'client/ui/graphic', 'client/ui/text', 'client/canvas'],
+	function(MESSAGE, ACTIONS, GRAPHIC, TEXT, CANVAS) {
 		var root = {};
 
 		var self = {
@@ -39,7 +39,7 @@ define(
 					}
 				}
 
-				if (!MOVE.targets[0].test(this, GAME_STATE.meta.local_player)) {
+				if (!ACTIONS['move'].test_targets(GAME_STATE.meta.local_player, [[this.q, this.r]])) {
 					self.path = [];
 					this.graphic.hover = {
 						sprite: 'negative',

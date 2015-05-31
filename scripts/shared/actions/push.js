@@ -1,7 +1,7 @@
 
 define(
-	['shared/targets', './move'],
-	function(TARGETS, MOVE) {
+	['shared/conditions', './move'],
+	function(CONDITIONS, MOVE) {
 		return {
 			key: 'push',
 			targets: MOVE.targets,

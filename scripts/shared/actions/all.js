@@ -18,8 +18,31 @@ define(
 	function() {
 		var root = {};
 
+		/**
+		 * Will test a series of targets, starting at the start index is provided
+		 * @positions should be an array of arrays [[0,1],[3,4]] and so on
+		 */
+		function test_targets(player, positions, start) {
+			if (typeof start === 'undefined') start = 0;
+
+			for (var i = positions.length - 1; i >= 0; i--) {
+				var hex = player.parent_state.hex(positions[i][0], positions[i][1]);
+				if (hex == null) return false;
+
+				var target = this.targets[start + i];
+				for (var n = target.conditions.length - 1; n >= 0; n--) {
+					if (!target.conditions[n](hex, player)) {
+						return false;
+					}
+				};
+			};
+
+			return true;
+		}
+
 		for (var i = arguments.length - 1; i >= 0; i--) {
 			root[arguments[i].key] = arguments[i];
+			root[arguments[i].key].test_targets = test_targets;
 		};
 
 		root.execute = function(action_key, state, data) {
@@ -68,6 +91,8 @@ define(
 				DEBUG.temp("Unit", args.unit.id, "acted on turn", args.state.meta.round);
 				args.unit.last_action = args.state.meta.round;
 			}
+
+			// TODO: Confirm that all targets are valid for a second time. If not, provide feedback indicating the failure.
 
 			DEBUG.flow("Executing action", this.key, args.data);
 			this.execute(args.state, args.data);

@@ -46,6 +46,7 @@ requirejs(
 
 							if (unit.type.key === 'bouncer') {
 								allow = false;
+								break;
 							}
 						}
 					}

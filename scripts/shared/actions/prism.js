@@ -1,7 +1,7 @@
 
 define(
-	['shared/targets', 'shared/util'],
-	function(TARGETS, UTIL) {
+	['shared/conditions', 'shared/util'],
+	function(CONDITIONS, UTIL) {
 		return {
 			key: 'prism',
 			targets: [],

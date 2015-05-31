@@ -120,14 +120,13 @@ requirejs(
 
 		HOOKS.on('hex:mouse_click', function() {
 			if (self.current_action != null && self.current_action.targets.length > self.targets.length) {
-				var i = self.targets.length;
-				var target = self.current_action.targets[i];
-				
-				if (target.test(this, GAME_STATE.meta.local_player)) {
-					self.targets[i] = this;
+				var index = self.targets.length;
+
+				if (self.current_action.test_targets(GAME_STATE.meta.local_player, [[this.q, this.r]], index)) {
+					self.targets[index] = this;
 					continue_execution();
 				} else {
-					DEBUG.error("Invalid target:", target.error);
+					DEBUG.error("Invalid target:", self.current_action.targets[index].error);
 				}
 			}
 		});
@@ -136,7 +135,6 @@ requirejs(
 			// Display possible messages.
 			if (self.current_action != null && self.current_action.targets.length > self.targets.length) {
 				var i = self.targets.length;
-				var target = self.current_action.targets[i];
 
 				if (self.acting_unit != null && self.acting_unit.position != null) {
 					var distance = this.parent_state.distance(this.q, this.r, self.acting_unit.position.q, self.acting_unit.position.r);
@@ -158,10 +156,10 @@ requirejs(
 					}
 				}
 
-				if (!target.test(this, GAME_STATE.meta.local_player)) {
+				if (!self.current_action.test_targets(GAME_STATE.meta.local_player, [[this.q, this.r]], i)) {
 					this.graphic.hover = {
 						sprite: 'negative',
-						text: target.error,
+						text: self.current_action.targets[i].error,
 					};
 				} else {
 					this.graphic.hover = {

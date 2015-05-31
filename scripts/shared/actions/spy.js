@@ -1,11 +1,11 @@
 
 define(
-	['shared/targets', 'shared/util', 'shared/round', 'shared/state/team'],
-	function(TARGETS, UTIL, ROUND, TEAM) {
+	['shared/conditions', 'shared/util', 'shared/round', 'shared/state/team'],
+	function(CONDITIONS, UTIL, ROUND, TEAM) {
 		return {
 			key: 'spy',
 			targets: [{
-				test: TARGETS.hex,
+				conditions: [/* any */],
 				error: "invalid",
 			}],
 			order: 0,
