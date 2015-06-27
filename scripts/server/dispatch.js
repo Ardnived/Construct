@@ -24,15 +24,15 @@ function on_message(stream, meta) {
 	});
 
 	stream.on('end', function() {
-		DEBUG.dispatch("Received message", buffer.readInt8(0), buffer.readUInt8(0), buffer);
-
 		requirejs(
 			['shared/message'],
-			function(message) {
-				var msg = message.decode(buffer);
+			function(MESSAGE) {
+				var msg = MESSAGE.decode(buffer);
 
 				HOOKS.trigger('dispatch:'+msg.type, null, {
+					source: 'client',
 					client: client,
+					meta: meta,
 					data: msg.data,
 				});
 			}
@@ -43,14 +43,26 @@ function on_message(stream, meta) {
 define(
 	['binaryjs'],
 	function(BINARYJS) {
+		/*var relayed_events = ['lobby'];
+
+		for (var i = relayed_events.length - 1; i >= 0; i--) {
+			HOOKS.on('dispatch:'+relayed_events[i], function(event) {
+				if (event.source === 'client') {
+
+				}
+			}
+		};*/
+
+		var server;
+
 		return {
 			server: null,
 
 			start: function(server) {
-				this.server = BINARYJS.BinaryServer({ server: server });
-				this.server.on("error", on_error);
+				server = BINARYJS.BinaryServer({ server: server });
+				server.on("error", on_error);
 
-				this.server.on("connection", function(connection) {
+				server.on("connection", function(connection) {
 					DEBUG.dispatch("Incoming connection.");
 
 					connection.on("open", on_open);
@@ -64,9 +76,9 @@ define(
 				DEBUG.dispatch("Launched Socket Server on port", CONFIG.port);
 			},
 
-			send: function(binary, length, targets) {
+			send: function(binary, length, targets, meta) {
 				if (typeof targets === 'undefined') {
-					targets = this.server.clients;
+					targets = server.clients;
 				} else if (Object.prototype.toString.call(targets) !== '[object Array]') {
 					targets = [targets];
 				}
@@ -78,7 +90,7 @@ define(
 
 				for (var id in targets) {
 					DEBUG.dispatch("Sending to client #"+id);
-					targets[id].send(buffer);
+					targets[id].send(buffer, meta);
 				}
 			},
 		};

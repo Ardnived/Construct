@@ -1,27 +1,30 @@
 
 define(
-	['shared/actions/all', 'shared/units/all', 'shared/structs/all', 'shared/directions'],
-	function(ACTIONS, UNITS, STRUCTS, DIRECTIONS) {
+	['shared/actions/all', 'shared/units/all', 'shared/structs/all', 'shared/directions', 'shared/util'],
+	function(ACTIONS, UNITS, STRUCTS, DIRECTIONS, UTIL) {
 		var RELATION = 127;
 		var JSON_OPEN = 126;
 		var JSON_CLOSE = 125;
 		var ARRAY_OPEN = 124;
 		var ARRAY_CLOSE = 123;
-		var NULL = 122;
+		var TEXT_START = 122;
+		var NULL = 121;
 		 
 		var BUFFER_SIZE = 16;
 
 		var text = {
 			// Defeat
-			"100": "Defeat",
+			"100": "Defeat.",
 			// Victory
-			"200": "Victory",
+			"200": "Victory.",
 			// Approved
-			"300": "Approved",
-			"301": "Execute locally",
+			"300": "Approved.",
+			"301": "Execute locally.",
+			"302": "Connected",
 			// Rejected, not now.
 			"400": "It is not your turn.",
 			"401": "Prohibited hex.",
+			"402": "Disconnected",
 			"404": "Not found.",
 			// Rejected, illegal move.
 			"500": "You are not a player.",
@@ -48,13 +51,13 @@ define(
 			traps: ['prism', 'monitor'],
 		};
 
-		var types = ['default', 'update', 'sync', 'reset', 'confirm', 'rejected', 'gameover', 'chat'];
+		var types = ['default', 'action', 'sync', 'gameover', 'lobby', 'keep-alive'];
 
 		var root = {
-			send: function(type, data, targets) {
+			send: function(type, data, targets, meta) {
 				requirejs(
 					[CONFIG.platform+'/dispatch'], 
-					function(dispatch) {
+					function(DISPATCH) {
 						if (typeof type === 'undefined') {
 							DEBUG.error("Cannot dispatch message with undefined type.");
 						}
@@ -65,20 +68,50 @@ define(
 
 						var msg = root.encode(type, data);
 
-						//if (msg.blocks > 0) {
-							DEBUG.dispatch("Sending", type, data, "with length", msg.blocks);
-							dispatch.send(msg.binary, msg.length, targets);
-						//} else {
-						//	DEBUG.error("Didn't send data, because it was empty.");
-						//}
-				});	
+						DEBUG.dispatch("Sending", type, data, "with length", msg.blocks);
+						DISPATCH.send(msg.binary, msg.length, targets, meta);
+					}
+				);
+			},
+
+			relay: function(channel, type, data, meta) {
+				if (CONFIG.platform == 'client') {
+					DEBUG.error("Clients can't relay data across servers.", "type", type, "data", data, "channel", channel, "meta", meta);
+					return false;
+				}
+
+				requirejs(
+					[CONFIG.platform+'/database'], 
+					function(DATABASE) {
+						if (typeof type === 'undefined') {
+							DEBUG.error("Cannot dispatch message with undefined type.");
+						}
+
+						if (typeof data === 'undefined') {
+							DEBUG.error("Cannot dispatch message with no data.");
+						}
+
+						var msg = root.encode(type, data);
+						DEBUG.dispatch("Relaying", type, data, "with length", msg.blocks);
+
+						DATABASE.publish(channel.toString(), JSON.stringify({
+							meta: meta,
+							data: msg.binary,
+						}));
+					}
+				);
 			},
 
 			encode: function(type, data) {
+				var text = data.text;
+				delete data.text;
+
 				var msg = new message();
 				msg.type = type;
 				msg.data = data;
 				msg.encode();
+
+
 
 				return {
 					binary: msg.binary,
@@ -89,15 +122,15 @@ define(
 
 			decode: function(binary) {
 				var buffer = new ArrayBuffer(binary.length);
-			    var view = new Int8Array(buffer);
-			    for (var i = 0; i < binary.length; ++i) {
-			        view[i] = binary[i];
-			    }
+				var view = new Int8Array(buffer);
+				for (var i = 0; i < binary.length; ++i) {
+					view[i] = binary[i];
+				}
 
 				var msg = new message();
 				msg.binary = view;
 				msg.decode();
-				
+
 				return {
 					type: msg.type,
 					data: msg.data,

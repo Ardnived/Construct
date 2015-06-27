@@ -55,8 +55,8 @@ DEBUG = {
 		console.log.apply(console, params);
 	},
 
-	data: function() {
-		var params = [":chat     -"];
+	database: function() {
+		var params = [":database -"];
 		Array.prototype.push.apply(params, arguments);
 		console.log.apply(console, params);
 	},

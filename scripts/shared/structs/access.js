@@ -24,21 +24,18 @@ requirejs(
 					}
 
 					chosen_hex.type = 'access';
-
-					var old_hex_data = {};
-					var new_hex_data = {};
-
-					HOOKS.trigger('hex:data', this, {
-						include: ['type'],
-						data: old_hex_data,
+					
+					this.parent_state.queue_update({
+						type: 'hex',
+						object: this,
+						values: ['type'],
 					});
 
-					HOOKS.trigger('hex:data', chosen_hex, {
-						include: ['type'],
-						data: new_hex_data,
+					this.parent_state.queue_update({
+						type: 'hex',
+						object: chosen_hex,
+						values: ['type'],
 					});
-
-					MESSAGE.send('update', [ old_hex_data, new_hex_data ]);
 				}
 			}
 		});

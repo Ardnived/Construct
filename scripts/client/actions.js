@@ -1,7 +1,7 @@
 
 requirejs(
 	['external/jquery', 'shared/message', 'shared/actions/all', 'shared/util'],
-	function($, MESSAGE, ACTIONS, UTIL) {
+	function(JQUERY, MESSAGE, ACTIONS, UTIL) {
 		var self = {
 			waiting: false,
 			current_action: null,
@@ -9,6 +9,9 @@ requirejs(
 			targets: null,
 		};
 
+		/**
+		 * When a user clicks to active an action, it then comes here to get it's targets.
+		 */
 		HOOKS.on('action:prepare', function(args) {
 			if (self.waiting) {
 				DEBUG.error("Waiting for server to confirm your last action, try again soon.");
@@ -91,7 +94,7 @@ requirejs(
 			}
 
 			DEBUG.flow("Queueing up an action", args.data);
-			MESSAGE.send('update', args.data);
+			MESSAGE.send('action', args.data);
 
 			// TODO: Wait for confirmation from the server.
 			if ('player_id' in args.data) {
@@ -99,7 +102,7 @@ requirejs(
 			}
 		}, HOOKS.ORDER_EXECUTE);
 
-		$('button.unit').each(function() {
+		JQUERY('button.unit').each(function() {
 			this.onclick = function() {
 				if (GAME_STATE.meta.local_player.unit(this.dataset.unit).position == null) {
 					HOOKS.trigger('action:prepare', ACTIONS[this.dataset.action], {
@@ -112,7 +115,7 @@ requirejs(
 			};
 		});
 
-		$('#skip-button').each(function() {
+		JQUERY('#skip-button').each(function() {
 			this.onclick = function() {
 				HOOKS.trigger('action:prepare', ACTIONS['skip']);
 			};
@@ -200,10 +203,10 @@ requirejs(
 			}
 		}, HOOKS.ORDER_AFTER);
 
-		HOOKS.on('dispatch:confirm', function(data) {
-			GAME_STATE.player(data.player_id).action_points = data.number;
+		HOOKS.on('dispatch:confirm', function(args) {
+			GAME_STATE.player(args.data.player_id).action_points = args.data.number;
 
-			if (data.player_id === GAME_STATE.meta.local_player.id) {
+			if (args.data.player_id === GAME_STATE.meta.local_player.id) {
 				DEBUG.temp("Acting unit is", self.acting_unit);
 				if (self.acting_unit != null) {
 					self.acting_unit.last_action = GAME_STATE.meta.round;
@@ -213,8 +216,8 @@ requirejs(
 			}
 		}, HOOKS.ORDER_EXECUTE);
 
-		HOOKS.on('dispatch:rejected', function(data) {
-			DEBUG.error("Rejected: "+data.message+' - '+MESSAGE.text[data.message]);
+		HOOKS.on('dispatch:rejected', function(args) {
+			DEBUG.error("Rejected: "+args.data.message+' - '+MESSAGE.text[args.data.message]);
 			clear_execution();
 		}, HOOKS.ORDER_EXECUTE);
 	}

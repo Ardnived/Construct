@@ -1,84 +1,7 @@
 
 define(
-	['shared/message', 'shared/util', 'shared/directions', 'shared/state/team', 'server/actions_handler', 'server/rout', 'server/sync'],
-	function(MESSAGE, UTIL, DIRECTIONS, TEAM) {
-		var object = {
-
-			reset: function(state, player_id) {
-				var data = [];
-
-				// Add meta data to tell the player what his id is.
-				// This information MUST be added first,
-				// otherwise when the player gets the data they won't know when a player id refers to themselves.
-				var meta_data = {};
-				HOOKS.trigger('meta:data', state.meta, {
-					data: meta_data,
-					player: state.player(player_id),
-				});
-
-				data.push(meta_data);
-				// ===== ===== ===== =====
-
-				// Add data for all players.
-				var players = state.players();
-				for (var i in players) {
-					var player = players[i];
-
-					if (!player.active) {
-						var player_data = {};
-						HOOKS.trigger('player:data', player, {
-							data: player_data
-						});
-
-						data.push(player_data);
-					}
-
-					var units = player.units();
-					for (var key in units) {
-						var unit_data = {};
-						HOOKS.trigger('unit:data', units[key], {
-							data: unit_data,
-						});
-
-						data.push(unit_data);
-					}
-				}
-
-				// Add all the hex data.
-				var hexes = state.hexes();
-				for (var key in hexes) {
-					var hex = hexes[key];
-
-					if (hex.type != null) {
-						var hex_data = {};
-						HOOKS.trigger('hex:data', hex, {
-							data: hex_data,
-							player: state.player(player_id),
-						});
-
-						data.push(hex_data);
-					}
-				}
-
-				// Add all the edge data.
-				var edges = state.edges();
-				for (var key in edges) {
-					var edge_data = {};
-					HOOKS.trigger('edge:data', edges[key], {
-						data: edge_data,
-					});
-					
-					data.push(edge_data);
-				}
-
-				// Check if the reply has contents.
-				if (data.length > 0) {
-					// If so, send the update back to the requestor.
-					MESSAGE.send('reset', data, state.player(player_id).client);
-				}
-			},
-		};
-
+	['shared/message', 'shared/util', 'shared/directions'],
+	function(MESSAGE, UTIL, DIRECTIONS) {
 		HOOKS.on('state:new', function() {
 			DEBUG.game("Generating new game.");
 			var board_density = 0.5;
@@ -194,6 +117,84 @@ define(
 			}*/
 		});
 
-		return object;
+		HOOKS.on('client:reset', function(state) {
+			if (typeof this.player_id === 'undefined') {
+				DEBUG.fatal("TODO: Make sure that the player_id is defined");
+			}
+
+			var data = [];
+
+			// Add meta data to tell the player what his id is.
+			// This information MUST be added first,
+			// otherwise when the player gets the data they won't know when a player id refers to themselves.
+			var meta_data = {};
+			HOOKS.trigger('meta:data', state.meta, {
+				data: meta_data,
+				player: state.player(this.player_id),
+			});
+
+			data.push(meta_data);
+			// ===== ===== ===== =====
+
+			// Add data for all players.
+			var players = state.players();
+			for (var i in players) {
+				var player = players[i];
+
+				if (!player.active) {
+					var player_data = {};
+					HOOKS.trigger('player:data', player, {
+						data: player_data
+					});
+
+					data.push(player_data);
+				}
+
+				var units = player.units();
+				for (var key in units) {
+					var unit_data = {};
+					HOOKS.trigger('unit:data', units[key], {
+						data: unit_data,
+					});
+
+					data.push(unit_data);
+				}
+			}
+
+			// Add all the hex data.
+			var hexes = state.hexes();
+			for (var key in hexes) {
+				var hex = hexes[key];
+
+				if (hex.type != null) {
+					var hex_data = {};
+					HOOKS.trigger('hex:data', hex, {
+						data: hex_data,
+						player: state.player(this.player_id),
+					});
+
+					data.push(hex_data);
+				}
+			}
+
+			// Add all the edge data.
+			var edges = state.edges();
+			for (var key in edges) {
+				var edge_data = {};
+				HOOKS.trigger('edge:data', edges[key], {
+					data: edge_data,
+				});
+				
+				data.push(edge_data);
+			}
+
+			// Check if the reply has contents.
+			if (data.length > 0) {
+				// If so, send the update back to the requestor.
+				MESSAGE.send('sync', data, this, {
+					reset: true,
+				});
+			}
+		});
 	}
 );

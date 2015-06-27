@@ -33,12 +33,19 @@ define(
 					var msg = MESSAGE.decode(binary);
 					
 					DEBUG.flow('doing dispatch:'+msg.type, msg.data);
-					HOOKS.trigger('dispatch:'+msg.type, null, msg.data);
+					HOOKS.trigger('dispatch:'+msg.type, null, {
+						meta: meta,
+						data: msg.data,
+					});
 				});
 
 				reader.readAsArrayBuffer(blob);
 			});
 		};
+
+		setInterval(function() {
+			MESSAGE.send('keep-alive', []);
+		}, 45000); // Send a keep alive message every 45 seconds.
 
 		return {
 			init: function(port) {
@@ -53,7 +60,7 @@ define(
 			send: function(binary, length) {
 				DEBUG.dispatch("Sending data", binary, "with length", length);
 				socket.send(binary, {
-					size: length
+					size: length,
 				});
 			},
 		};

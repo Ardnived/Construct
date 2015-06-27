@@ -11,6 +11,10 @@ define(
 				return 't'+team_index;
 			},
 
+			parse_key: function(key) {
+				return parseInt(key.substring(1));
+			},
+
 			VISION_NONE:    0,
 			VISION_HIDDEN:  1,
 			VISION_PARTIAL: 2,
@@ -166,7 +170,7 @@ define(
 			var intervals = ROUND.intervals(current_round);
 
 			for (var key in visibility_list) {
-				var position = HEX.parse(key);
+				var position = HEX.parse_key(key);
 				var hex = this.parent_state.hex(position.q, position.r);
 
 				for (var i in intervals) {

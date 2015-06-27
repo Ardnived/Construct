@@ -1,4 +1,10 @@
 
+#game {
+	.tab-content {
+		text-align: center;
+	}
+}
+
 #canvas {
 	margin-top: 40px;
 	display: inline-block;
@@ -11,31 +17,29 @@
 	right: 0;
 	text-align: center;
 	padding: 7px;
-}
 
-#topbar .progress {
-	width: 70px;
-	margin: 0 2px;
-	display: inline-block;
+	.progress {
+		width: 70px;
+		margin: 0 2px;
+		display: inline-block;
+	}
 }
 
 #left {
 	text-align: left;
 	position: absolute;
 	left: 5px;
+
+	td {
+		line-height: 1em;
+		padding: 1px;
+	}
 }
 
 #right {
 	text-align: right;
 	position: absolute;
 	right: 5px;
-}
-
-.flip {
-	-moz-transform: scaleX(-1);
-	-webkit-transform: scaleX(-1);
-	-o-transform: scaleX(-1);
-	transform: scaleX(-1);
 }
 
 #tooltip {
@@ -52,20 +56,15 @@ button {
 	margin: 3px 1px;
 	text-align: left;
 	outline: none;
-}
 
-button:hover {
-	background-color: lightgreen;
-	border-color: lightgreen;
-}
+	&:hover {
+		background-color: lightgreen;
+		border-color: lightgreen;
+	}
 
-button img {
-	height: 24px;
-}
-
-#left td {
-	line-height: 1em;
-	padding: 1px;
+	img {
+		height: 24px;
+	}
 }
 
 /* === UNIT IMAGES === */
@@ -79,12 +78,12 @@ button img {
 	box-sizing: content-box;
 	background-clip: content-box;
 	background-origin: content-box;
-}
 
-.unit-sniffer  { background-position:  0px   0px; }
-.unit-peeper   { background-position:  0px -24px; }
-.unit-bouncer  { background-position:  0px -48px; }
-.unit-enforcer { background-position:  0px -72px; }
-.unit-seeker   { background-position: 72px   0px; }
-.unit-cleaner  { background-position: 72px -24px; }
-.unit-carrier  { background-position: 72px -48px; }
+	.unit-sniffer  { background-position:  0px   0px; }
+	.unit-peeper   { background-position:  0px -24px; }
+	.unit-bouncer  { background-position:  0px -48px; }
+	.unit-enforcer { background-position:  0px -72px; }
+	.unit-seeker   { background-position: 72px   0px; }
+	.unit-cleaner  { background-position: 72px -24px; }
+	.unit-carrier  { background-position: 72px -48px; }
+}

@@ -2,6 +2,7 @@
 define(
 	function() {
 		var root = {
+			key: 'meta',
 			create: function(parent_state) {
 				return HOOKS.trigger('meta:new', new meta(parent_state));
 			},
@@ -9,6 +10,8 @@ define(
 
 		var meta = function(parent_state) {
 			this.parent_state = parent_state;
+
+			// TODO: Convert these to database fields.
 			this.player_count = CONFIG.default_player_count;
 			this.round = 0;
 			this.ready_players = 0;

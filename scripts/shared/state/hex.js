@@ -86,7 +86,7 @@ define(
 				return 'h'+q+','+r;
 			},
 
-			parse: function(key) {
+			parse_key: function(key) {
 				key = key.substring(1);
 				key = key.split(",");
 
@@ -255,7 +255,7 @@ define(
 		};
 
 		hex.prototype.clear_traps = function() {
-			this._traps.del();
+			this._traps.clear();
 		};
 
 		HOOKS.on('hex:sync', function(new_round) {
@@ -296,7 +296,7 @@ HOOKS.on('unit:move', function(args) {
 
 	if (args.old_position != null) {
 		hex = this.parent_state.hex(args.old_position.q, args.old_position.r);
-		hex._units.del(this.owner.id);
+		hex._units.clear(this.owner.id);
 
 		if (hex.type != null && hex.type.ownable && this.owner === hex.owner) {
 			var units = hex.units();

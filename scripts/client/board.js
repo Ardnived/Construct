@@ -24,6 +24,9 @@ define(
 			},
 		};
 
+
+		/* ======== EDGE ======== */
+
 		HOOKS.on('edge:new', function() {
 			var x = root.get_x(this.q1, this.r1, this.q2, this.r2);
 			var y = root.get_y(this.q1, this.r1, this.q2, this.r2);
@@ -45,6 +48,44 @@ define(
 			this.graphic.rotation = angle;
 			this.graphic.visible = false;
 		});
+
+		HOOKS.on('edge:update', function(data) {
+			if ('number' in data) {
+				if (data.number < 1) {
+					this.graphic.spriteset(CANVAS.image.edge.accel);
+				} else {
+					this.graphic.spriteset(CANVAS.image.edge.empty);
+				}
+			}
+		});
+
+		HOOKS.on('edge:change_active', function() {
+			this.graphic.visible = this.active;
+		});
+		
+
+		/* ======== UNIT ======== */
+
+		HOOKS.on('unit:new', function() {
+			this.graphic = new GRAPHIC(CANVAS.image.unit.carrier, {
+				visible: false,
+			});
+
+			if (this.owner.id === this.parent_state.meta.local_player_id) {
+				this.graphic.sprite('local');
+			} else if (this.owner.team === this.parent_state.meta.local_player.team) {
+				this.graphic.sprite('ally');
+			} else {
+				this.graphic.sprite('enemy');
+			}
+		});
+		
+		HOOKS.on('unit:change_type', function(old_type) {
+			this.graphic.spriteset(CANVAS.image.unit[this.type.key]);
+		});
+
+
+		/* ======== HEX ======== */
 
 		HOOKS.on('hex:new', function() {
 			var hex_x = root.get_x(this.q, this.r);
@@ -117,38 +158,6 @@ define(
 		HOOKS.on('hex:change_lockdown', function() {
 			this.status.lockdown.visible = this.lockdown;
 		}, HOOKS.ORDER_AFTER);
-		
-		HOOKS.on('unit:new', function() {
-			this.graphic = new GRAPHIC(CANVAS.image.unit.carrier, {
-				visible: false,
-			});
-
-			if (this.owner.id === this.parent_state.meta.local_player_id) {
-				this.graphic.sprite('local');
-			} else if (this.owner.team === this.parent_state.meta.local_player.team) {
-				this.graphic.sprite('ally');
-			} else {
-				this.graphic.sprite('enemy');
-			}
-		});
-		
-		HOOKS.on('unit:change_type', function(old_type) {
-			this.graphic.spriteset(CANVAS.image.unit[this.type.key]);
-		});
-
-		HOOKS.on('edge:update', function(data) {
-			if ('number' in data) {
-				if (data.number < 1) {
-					this.graphic.spriteset(CANVAS.image.edge.accel);
-				} else {
-					this.graphic.spriteset(CANVAS.image.edge.empty);
-				}
-			}
-		});
-
-		HOOKS.on('edge:change_active', function() {
-			this.graphic.visible = this.active;
-		});
 
 		HOOKS.on('hex:unit_gained', function(unit) {
 			// TODO: Write code that will make enemies appear big if the hex is otherwise unoccupied.

@@ -22,45 +22,31 @@ requirejs(['global/config', 'global/debug', 'global/hooks']);
 GAME_STATE = null;
 
 requirejs(
-	['client/dispatch', 'shared/state', 'shared/message', 'client/updater'], 
+	['client/dispatch', 'shared/state', 'shared/message', 'client/updater', 'client/lobby'], 
 	function(DISPATCH, STATE, MESSAGE) {
-		HOOKS.on('dispatch:update', function(data) {
-			if (data instanceof Array) {
-				DEBUG.temp("DEPRECATED");
-				HOOKS.trigger('state:update', GAME_STATE, data);
-			} else {
-				DEBUG.fatal("Tried to send non-array updates", data);
-			}
-		});
-
-		HOOKS.on('dispatch:sync', function(data) {
-			if (data instanceof Array) {
+		HOOKS.on('dispatch:sync', function(args) {
+			if (args.data instanceof Array) {
 				DEBUG.flow('--------- RECEIVED SYNC COMMAND ---------');
-				HOOKS.trigger('state:update', GAME_STATE, data);
-				HOOKS.trigger('state:sync', GAME_STATE);
-			} else {
-				DEBUG.fatal("Tried to send non-array updates", data);
-			}
-		});
-
-		HOOKS.on('dispatch:reset', function(data) {
-			if (data instanceof Array) {
-				GAME_STATE = new STATE();
-				for (var q = GAME_STATE.min_q(); q <= GAME_STATE.max_q(); q++) {
-					for (var r = GAME_STATE.min_r(q); r <= GAME_STATE.max_r(q); r++) {
-						// Initialize each hex.
-						GAME_STATE.hex(q, r);
+				if ( args.meta.reset === true ) {
+					for (var q = GAME_STATE.min_q(); q <= GAME_STATE.max_q(); q++) {
+						for (var r = GAME_STATE.min_r(q); r <= GAME_STATE.max_r(q); r++) {
+							// Initialize each hex.
+							GAME_STATE.hex(q, r);
+						}
 					}
-				}
 
-				HOOKS.trigger('state:update', GAME_STATE, data);
+					HOOKS.trigger('state:update', GAME_STATE, args.data);
+				} else {
+					HOOKS.trigger('state:update', GAME_STATE, args.data);
+					HOOKS.trigger('state:sync', GAME_STATE);
+				}
 			} else {
-				DEBUG.fatal("Tried to send non-array updates", data);
+				DEBUG.fatal("Tried to send non-array updates", args.data);
 			}
 		});
 
-		HOOKS.on('dispatch:gameover', function(data) {
-			DEBUG.error("GAMEOVER: "+data.message+' - '+MESSAGE.text[data.message]);
+		HOOKS.on('dispatch:gameover', function(args) {
+			DEBUG.error("GAMEOVER: "+args.data.message+' - '+MESSAGE.text[args.data.message]);
 		});
 
 		requirejs(

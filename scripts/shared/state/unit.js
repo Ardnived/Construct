@@ -10,6 +10,10 @@ define(
 			key: function(unit_index, player_index) {
 				return 'p'+player_index+'u'+unit_index;
 			},
+
+			parse_key: function(key) {
+				return parseInt(key.split('u')[1]);
+			},
 		};
 
 		var unit = function(parent_state, unit_index, player) {

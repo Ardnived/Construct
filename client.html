@@ -2,20 +2,26 @@
 
 <head>
 	<link rel="stylesheet" type="text/css" href="/styles/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="/styles/nprogress.css">
 	<link rel="stylesheet" type="text/css" href="/styles/style.css">
 </head>
 <body>
 	<ul class="tabs">
 		<li id="lobby">
-			<input type="radio" name="tabs" id="tab1" checked />
+			<input type="radio" name="tabs" id="tab1" />
 			<label for="tab1">Lobby</label>
 			<div id="tab-content1" class="tab-content">
-				This is the game lobby.
+				<div id="lobby-players" class="pull-right">
+
+				</div>
+				<ul id="lobby-chat">
+
+				</ul>
 			</div>
 		</li>
 
 		<li id="game">
-			<input type="radio" name="tabs" id="tab2" />
+			<input type="radio" name="tabs" id="tab2" checked />
 			<label for="tab2">Game</label>
 			<div id="tab-content2" class="tab-content">
 				<div id="topbar">
@@ -87,7 +93,7 @@
 				<div id="right">
 					<h1 class="title">Players</h1>
 				</div>
-				<div id="canvas" oncontextmenu="return false;"></div>
+				<div id="canvas" oncontextmenu="return false;" width="800px" height="700px"></div>
 			</div>
 		</li>
 	</ul>

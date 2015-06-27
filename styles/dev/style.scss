@@ -1,73 +1,19 @@
 
+$background-color: #34343F;
+
+@import 'tabs';
 @import 'lobby';
 @import 'game';
 
 body {
 	text-align: center;
-	background: #34343F;
+	background: $background-color;
 	color: white;
 }
 
-/* TODO: Refactor all this */
-
-.tabs {
-	float: none;
-	list-style: none;
-	position: relative;
-	text-align: left;
-
-	height: 47px;
-	border-bottom: 5px solid #000;
-	margin-top: 10px;
-}
-
-.tabs input[type="radio"] {
-	position: absolute;
-	top: -9999px;
-	left: -9999px;
-}
-
-.tabs label {
-	display: block;
-	padding: 7px 28px;
-	border-radius: 2px 2px 0 0;
-	margin-right: 1px;
-	font-size: 20px;
-	font-weight: normal;
-	text-transform: uppercase;
-	background: black;
-	cursor: pointer;
-	position: relative;
-	top: 4px; 
-	transition: all 0.2s ease-in-out;
-}
-
-[id^="tab"]:checked + label { 
-	top: 0;
-	padding-top: 10px; 
-}
-
-.tabs li {
-	float: left;
-	display: block;
-}
-
-.tab-content {
-	position: relative;
-	display: none;
-
-    z-index: 2;
-    display: none; 
-    overflow: hidden;
-    width: 100%;
-    font-size: 17px;
-    line-height: 25px;
-    padding: 25px;  
-    position: absolute;
-    top: 53px;
-    left: 0; 
-}
-
-[id^="tab"]:checked ~ [id^="tab-content"] {
-	display: block;
+.flip {
+	-moz-transform: scaleX(-1);
+	-webkit-transform: scaleX(-1);
+	-o-transform: scaleX(-1);
+	transform: scaleX(-1);
 }

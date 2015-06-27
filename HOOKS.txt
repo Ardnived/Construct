@@ -1,11 +1,12 @@
 
 ======= DISPATCH =======
-:connected		successfully connected to a client/server.
-:update			received a set of updates from the client/server.
-:rejected		the server rejected our request.
-
-======= GAME =======
-:action				the game has received an action update. TODO: Refactor this out, it doesn't work well.
+:connected			successfully connected to a client/server.
+:rejected			the server rejected our request.
+:confirm			the server confirmed out request. details may be attached.
+:action				receive a state update from the server.
+:sync				
+:gameover			
+:chat				
 
 ======= STATE =======
 :new				a new state was created.

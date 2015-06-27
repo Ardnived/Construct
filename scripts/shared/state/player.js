@@ -10,6 +10,10 @@ define(
 			key: function(index) {
 				return 'p'+index;
 			},
+
+			parse_key: function(key) {
+				return parseInt(key.substring(1));
+			},
 		};
 
 		var player = function(parent_state, index) {

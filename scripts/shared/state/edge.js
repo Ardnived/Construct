@@ -20,6 +20,20 @@ define(
 
 				return 'e'+q1+','+r1+'/'+q2+','+r2;
 			},
+
+			parse_key: function(key) {
+				key = key.substring(1);
+				key = key.split('/');
+				var p1 = key[0].split(',');
+				var p2 = key[1].split(',');
+
+				return {
+					q1: parseInt(p1[0]),
+					r1: parseInt(p1[1]),
+					q2: parseInt(p2[0]),
+					r2: parseInt(p2[1]),
+				};
+			},
 		}
 
 		function edge(parent_state, q1, r1, q2, r2) {

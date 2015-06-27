@@ -30,6 +30,7 @@ requirejs(
 					} else {
 						response.writeHead(200, { "Content-Type" : content_type });
 					}
+					
 					response.write(file, "binary");
 					break;
 			}
@@ -47,8 +48,6 @@ requirejs(
 			}
 			
 			var filename = PATH.join(process.cwd(), "/", uri);
-			
-			//DEBUG.dispatch("Request received. ["+uri+"]");
 			
 			FS.exists(filename, function(exists) {
 				if (exists) {
@@ -83,11 +82,11 @@ requirejs(
 );
 
 requirejs(
-	['server/dispatch', 'server/game', 'shared/state', 'node-uuid'],
-	function(DISPATCH, GAME, STATE, UUID) {
+	['server/dispatch', 'server/game/main', 'shared/state', 'node-uuid', 'shared/message'],
+	function(DISPATCH, GAME, STATE, UUID, MESSAGE) {
 		DISPATCH.start(http_server);
 
-		var clients = {};
+		/*var clients = {};
 		var games = {};
 
 		// TODO: Change this set up.
@@ -99,6 +98,12 @@ requirejs(
 
 		HOOKS.on('dispatch:connection', function(client) {
 			DEBUG.game("Received connection with socket id", client.id);
+
+			// TODO: Remove this test message.
+			MESSAGE.send('chat', [], client, {
+				player: "Ardnived",
+				text: "This is a Test Message",
+			});
 			
 			// TODO: Assign a player id.
 			var user_id = UUID.v4();
@@ -118,16 +123,6 @@ requirejs(
 			} else {
 				DEBUG.game("A spectator has joined game \'"+game_state.id+"\'");
 			}
-		});
-
-		HOOKS.on('dispatch:update', function(args) {
-			args.state = games[args.client.game_id];
-			//DEBUG.temp("sending game:"+args.data.type, args.data);
-			HOOKS.trigger('game:'+args.data.type, null, args);
-		});
-
-		HOOKS.on('dispatch:chat', function(args) {
-			// TODO: Unimplemented
-		});
+		});*/
 	}
 );

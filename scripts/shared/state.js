@@ -14,11 +14,18 @@ define(
 
 		state.prototype = {
 			hex: function(q, r) {
+				var key;
+				
 				if (typeof q === 'string') {
-					// q might also be the key.
-					return this._hex_list[q];
-				} else if (this.in_bounds(q, r)) {
-					var key = HEX.key(q, r);
+					key = q;
+					var position = HEX.parse_key(key);
+					q = position.q;
+					r = position.r;
+				} else {
+					key = HEX.key(q, r);
+				}
+
+				if (this.in_bounds(q, r)) {
 					if (!(key in this._hex_list)) {
 						this._hex_list[key] = HEX.create(this, q, r);
 					}
@@ -56,9 +63,20 @@ define(
 			},
 
 			edge: function(q1, r1, q2, r2) {
-				if (this.in_bounds(q1, r1, q2, r2)) {
-					var key = EDGE.key(q1, r1, q2, r2);
+				var key;
+				
+				if (typeof q1 === 'string') {
+					key = q1;
+					var position = EDGE.parse_key(key);
+					q1 = position.q1;
+					r1 = position.r1;
+					q2 = position.q2;
+					r2 = position.r2;
+				} else {
+					key = EDGE.key(q1, r1, q2, r2);
+				}
 
+				if (this.in_bounds(q1, r1, q2, r2)) {
 					if (!(key in this._edge_list)) {
 						this._edge_list[key] = EDGE.create(this, q1, r1, q2, r2);
 					}
@@ -89,9 +107,16 @@ define(
 			},
 
 			player: function(player_index) {
-				if (player_index != null && player_index != NaN && player_index < this.meta.player_count) {
-					var key = PLAYER.key(player_index);
+				var key;
 
+				if (typeof player_index === 'string') {
+					key = player_index;
+					player_index = PLAYER.parse_key(key);
+				} else {
+					key = PLAYER.key(player_index);
+				}
+
+				if (player_index != null && player_index != NaN && player_index < this.meta.player_count) {
 					if (this._player_list[key] == null) {
 						this._player_list[key] = PLAYER.create(this, player_index);
 					}
@@ -107,9 +132,16 @@ define(
 			},
 
 			team: function(team_index) {
-				if (team_index != null && team_index != NaN) {
-					var key = TEAM.key(team_index);
+				var key;
 
+				if (typeof team_index === 'string') {
+					key = team_index;
+					team_index = TEAM.parse_key(key);
+				} else {
+					key = TEAM.key(team_index);
+				}
+
+				if (team_index != null && team_index != NaN) {
 					if (this._team_list[key] == null) {
 						this._team_list[key] = TEAM.create(this, team_index);
 					}
