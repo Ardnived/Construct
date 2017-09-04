@@ -2,12 +2,12 @@
 HOOKS = {
 	_list: {},
 
-	ORDER_VETO: -1000,
-	ORDER_FIRST: -100,
+	ORDER_VETO:   -1000,
+	ORDER_FIRST:  -100,
 	ORDER_BEFORE: -50,
 	ORDER_EXECUTE: 0,
-	ORDER_AFTER: 50,
-	ORDER_LAST: 100,
+	ORDER_AFTER:   50,
+	ORDER_LAST:    100,
 
 	comparator: function(a, b) {
 		return b.priority - a.priority;
@@ -36,7 +36,7 @@ HOOKS = {
 	},
 
 	trigger: function(slug, self, args) {
-		//DEBUG.flow("Triggering", slug, "| "+args);
+		DEBUG.flow("Triggering", slug, "| "+args);
 		var result = true;
 
 		if (typeof self === 'undefined') {
@@ -45,7 +45,7 @@ HOOKS = {
 
 		if (typeof this._list[slug] !== 'undefined') {
 			this._list[slug].every(function(element, index, array) {
-				//DEBUG.flow("Calling", element.priority+":", element.callback);
+				DEBUG.flow("Calling", element.priority+":", element.callback);
 				if (element.priority <= HOOKS.ORDER_VETO) {
 					result = (element.callback.call(self, args) != false);
 					// If false is returned, the loop will terminate.
@@ -57,7 +57,7 @@ HOOKS = {
 			});
 		}
 
-		//DEBUG.flow("Finished", slug, "with result", result);
+		DEBUG.flow("Finished", slug, "with result", result);
 		if (result == false) {
 			return false;
 		} else {

@@ -10,8 +10,8 @@ requirejs(['global/config', 'global/debug', 'global/hooks']);
 var http_server;
 
 requirejs(
-	['http', 'fs', 'path', 'url'],
-	function(HTTP, FS, PATH, URL) {
+	['http', 'fs', 'path', 'url', 'server/router', 'server/lobby/main'],
+	function(HTTP, FS, PATH, URL, ROUTER) {
 		function respond(type, response, param, content_type) {
 			switch (type) {
 				case 404:
@@ -78,51 +78,9 @@ requirejs(
 		}).listen(CONFIG.port);
 
 		DEBUG.dispatch("Launched HTTP Server on port", CONFIG.port);
-	}
-);
 
-requirejs(
-	['server/dispatch', 'server/game/main', 'shared/state', 'node-uuid', 'shared/message'],
-	function(DISPATCH, GAME, STATE, UUID, MESSAGE) {
-		DISPATCH.start(http_server);
+		ROUTER.start(http_server)
 
-		/*var clients = {};
-		var games = {};
-
-		// TODO: Change this set up.
-		var game_id = UUID.v4();
-		var game_state = HOOKS.trigger('state:new', new STATE(game_id));
-		games[game_id] = game_state;
-
-		var player_increment = 0;
-
-		HOOKS.on('dispatch:connection', function(client) {
-			DEBUG.game("Received connection with socket id", client.id);
-
-			// TODO: Remove this test message.
-			MESSAGE.send('chat', [], client, {
-				player: "Ardnived",
-				text: "This is a Test Message",
-			});
-			
-			// TODO: Assign a player id.
-			var user_id = UUID.v4();
-			var player_id = player_increment;
-			player_increment++;
-
-			var player = game_state.player(player_id);
-
-			if (player != null) {
-				client.game_id = game_state.id;
-				client.player_id = player_id;
-				player.user_id = user_id;
-				player.client = client;
-				GAME.reset(game_state, player_id);
-
-				DEBUG.game("User has been assigned id #"+player_id+" and has joined game \'"+game_state.id+"\'");
-			} else {
-				DEBUG.game("A spectator has joined game \'"+game_state.id+"\'");
-			}
-		});*/
+		DEBUG.dispatch("Launched Socket Server on port", CONFIG.port);
 	}
 );

@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'shared/util', 'shared/directions'],
-	function(MESSAGE, UTIL, DIRECTIONS) {
+	['shared/dispatch', 'shared/util', 'shared/directions'],
+	function(DISPATCH, UTIL, DIRECTIONS) {
 		HOOKS.on('state:new', function() {
 			DEBUG.game("Generating new game.");
 			var board_density = 0.5;
@@ -191,9 +191,14 @@ define(
 			// Check if the reply has contents.
 			if (data.length > 0) {
 				// If so, send the update back to the requestor.
-				MESSAGE.send('sync', data, this, {
-					reset: true,
-				});
+				// TODO: Implement single client sending.
+				DISPATCH({
+					type: 'sync',
+					binary: data,
+					json: {
+						reset: true,
+					},
+				}).to(this);
 			}
 		});
 	}

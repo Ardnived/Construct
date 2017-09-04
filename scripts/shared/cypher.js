@@ -7,8 +7,7 @@ define(
 		var JSON_CLOSE = 125;
 		var ARRAY_OPEN = 124;
 		var ARRAY_CLOSE = 123;
-		var TEXT_START = 122;
-		var NULL = 121;
+		var NULL = 122;
 		 
 		var BUFFER_SIZE = 16;
 
@@ -51,179 +50,116 @@ define(
 			traps: ['prism', 'monitor'],
 		};
 
-		var types = ['default', 'action', 'sync', 'gameover', 'lobby', 'keep-alive'];
+		var types = ['default', 'action', 'sync', 'gameover', 'lobby', 'response', 'keep-alive'];
+
+
+		var raw, result, length, type, channel_id;
 
 		var root = {
-			send: function(type, data, targets, meta) {
-				requirejs(
-					[CONFIG.platform+'/dispatch'], 
-					function(DISPATCH) {
-						if (typeof type === 'undefined') {
-							DEBUG.error("Cannot dispatch message with undefined type.");
-						}
+			LOBBY_ID: 0,
+			TEXT: text,
 
-						if (typeof data === 'undefined') {
-							DEBUG.error("Cannot dispatch message with no data.");
-						}
+			encode: function(type, channel_id, data) {
+				result = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
+				set(data);
 
-						var msg = root.encode(type, data);
+				insert(type, types);
+				insert(channel_id);
 
-						DEBUG.dispatch("Sending", type, data, "with length", msg.blocks);
-						DISPATCH.send(msg.binary, msg.length, targets, meta);
-					}
-				);
-			},
-
-			relay: function(channel, type, data, meta) {
-				if (CONFIG.platform == 'client') {
-					DEBUG.error("Clients can't relay data across servers.", "type", type, "data", data, "channel", channel, "meta", meta);
-					return false;
+				if (raw != null) {
+					write(raw);
+				} else {
+					insert(NULL);
 				}
-
-				requirejs(
-					[CONFIG.platform+'/database'], 
-					function(DATABASE) {
-						if (typeof type === 'undefined') {
-							DEBUG.error("Cannot dispatch message with undefined type.");
-						}
-
-						if (typeof data === 'undefined') {
-							DEBUG.error("Cannot dispatch message with no data.");
-						}
-
-						var msg = root.encode(type, data);
-						DEBUG.dispatch("Relaying", type, data, "with length", msg.blocks);
-
-						DATABASE.publish(channel.toString(), JSON.stringify({
-							meta: meta,
-							data: msg.binary,
-						}));
-					}
-				);
-			},
-
-			encode: function(type, data) {
-				var text = data.text;
-				delete data.text;
-
-				var msg = new message();
-				msg.type = type;
-				msg.data = data;
-				msg.encode();
-
-
 
 				return {
-					binary: msg.binary,
-					length: msg.length,
-					blocks: (msg.data instanceof Array) ? msg.data.length : 1,
+					binary: result,
+					length: length,
 				}
 			},
 
-			decode: function(binary) {
-				var buffer = new ArrayBuffer(binary.length);
+			decode: function(data) {
+				var buffer = new ArrayBuffer(data.length);
 				var view = new Int8Array(buffer);
-				for (var i = 0; i < binary.length; ++i) {
-					view[i] = binary[i];
+				for (var i = 0; i < data.length; ++i) {
+					view[i] = data[i];
 				}
 
-				var msg = new message();
-				msg.binary = view;
-				msg.decode();
+				set(view);
+				read();
 
 				return {
-					type: msg.type,
-					data: msg.data,
+					type: type,
+					channel_id: channel_id,
+					data: result,
 				};
 			},
-
-			text: text,
 		};
 
-		function message(type) {
-			this.type = typeof type !== 'undefined' ? type : types[0];
-			this.binary = null;
-			this.data = null;
-			this.length = 0;
-		};
+		function set(data) {
+			raw = data;
+			result = null;
+			length = 0;
+			type = null;
+			channel_id = null;
+		}
 
-		/**
-		 * Updates this.binary by encoding this.data
-		 */
-		message.prototype.encode = function(data, dictionary) {
-			if ( typeof data === 'undefined') {
-				if (this.type == null) {
-					DEBUG.error("Encoding failed: Message type has not been set.");
-					return false;
-				}
-
-				data = this.data;
-				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
-
-				this.write(this.type, types);
-			}
-
-			DEBUG.parse("Encoding", this.type, toString.call(data), data);
-
-			if (this.binary === null) {
-				this.binary = new Int8Array(new ArrayBuffer(BUFFER_SIZE));
-			}
-
-			if ( typeof dictionary === 'undefined') {
+		function write(data, dictionary) {
+			if (typeof dictionary === 'undefined') {
 				dictionary = keys;
 			}
 
 			if (toString.call(data) === '[object Array]') {
-				this.write(ARRAY_OPEN);
+				insert(ARRAY_OPEN);
 
 				for (var key in data) {
 					if (typeof data[key] === 'undefined' || data[key] == null) {
-						this.write(NULL);
+						insert(NULL);
 					} else {
-						this.encode(data[key], dictionary);
+						write(data[key], dictionary);
 					}
 				}
 
-				this.write(ARRAY_CLOSE);
+				insert(ARRAY_CLOSE);
 			} else if (toString.call(data) === '[object Object]') {
-				this.write(JSON_OPEN);
+				insert(JSON_OPEN);
 
 				for (var key in data) {
-					this.write(RELATION);
-					this.write(key, dictionary);
+					insert(RELATION);
+					insert(key, dictionary);
 					DEBUG.parse("encode data for "+key);
 
 					if (typeof data[key] === 'undefined' || data[key] == null) {
-						this.write(NULL);
+						insert(NULL);
 					} else if (values.hasOwnProperty(key)) {
-						this.encode(data[key], values[key]);
+						write(data[key], values[key]);
 					} else {
-						this.encode(data[key], dictionary);
+						write(data[key], dictionary);
 					}
 				}
 
-				this.write(JSON_CLOSE);
+				insert(JSON_CLOSE);
 			} else if ( typeof data === 'number') {
-				this.write(data);
+				insert(data);
 			} else if ( typeof data === 'boolean') {
-				this.write(data ? 1 : 0);
+				insert(data ? 1 : 0);
 			} else {
-				this.write(data, dictionary);
+				insert(data, dictionary);
 			}
 
 			return true;
 		};
 
-		message.prototype.write = function(value, dictionary) {
-			//DEBUG.parse("write", value, "to", this.length);
+		function insert(value, dictionary) {
+			//DEBUG.parse("write", value, "to", length);
 			var query = value; //TODO: remove this DEBUG code.
 
-			if (this.length >= this.binary.length) {
-				//DEBUG.parse("enlarge buffer to", this.binary.length + BUFFER_SIZE);
-				var newbuffer = new ArrayBuffer(this.binary.length + BUFFER_SIZE);
+			if (length >= result.length) {
+				//DEBUG.parse("enlarge buffer to", result.length + BUFFER_SIZE);
+				var newbuffer = new ArrayBuffer(result.length + BUFFER_SIZE);
 				var newbinary = new Int8Array(newbuffer);
-				newbinary.set(this.binary);
-				this.binary = newbinary;
+				newbinary.set(result);
+				result = newbinary;
 			}
 
 			if (typeof dictionary !== 'undefined') {
@@ -231,17 +167,16 @@ define(
 
 				if (value == -1) {
 					DEBUG.parse(dictionary);
-					DEBUG.fatal("Unrecognized key on encode:", query, '\n', this.data, '\n', dictionary);
+					DEBUG.fatal("Unrecognized key on encode:", query, '\n', raw, '\n', dictionary);
 					return;
 				}
 			}
 
-			this.binary[this.length] = value;
-			this.length++;
+			result[length] = value;
+			length++;
 		};
 
-		message.prototype.decode = function() {
-			this.data = null;
+		function read() {
 			var jsonkeys = [];
 			var key = null;
 			var mode = 'value';
@@ -250,17 +185,26 @@ define(
 			var dicttree = [];
 			var depth = -1;
 
-			DEBUG.parse("received", this.binary);
 			outerloop:
-			for (var index in this.binary) {
+			for (var index in raw) {
+				DEBUG.parse("Parsing", index);
 				var value;
 
-				if (index == 0) {
-					this.type = this.read(this.binary[index], types);
-					DEBUG.parse("type is", this.type);
-					continue;
-				} else {
-					value = this.read(this.binary[index]);
+				switch (index) {
+					case '0': 
+						type = extract(index, types);
+						DEBUG.parse("parsed type", raw[index], "=", type);
+						continue;
+					case '1':
+						channel_id = extract(index);
+						DEBUG.parse("parsed channel_id", raw[index], "=", channel_id);
+						continue;
+					case '2':
+						value = extract(index);
+						if (value == null) return null;
+						break;
+					default:
+						value = extract(index);
 				}
 
 				switch (value) {
@@ -307,9 +251,9 @@ define(
 							case 'key':
 								var jsonkey = jsonkeys[depth];
 								if (typeof values[jsonkey] !== 'undefined') {
-									key = this.read(this.binary[index], values[jsonkey]);
+									key = extract(index, values[jsonkey]);
 								} else {
-									key = this.read(this.binary[index], keys);
+									key = extract(index, keys);
 								}
 
 								mode = 'keyvalue';
@@ -317,7 +261,7 @@ define(
 								break;
 							case 'keyvalue':
 								if (typeof values[key] !== 'undefined') {
-									value = this.read(this.binary[index], values[key]);
+									value = extract(index, values[key]);
 								}
 
 								jsontree[depth][key] = value;
@@ -328,24 +272,28 @@ define(
 							case 'value':
 								var parsekey = jsonkeys[jsonkeys.length-1];
 								if (typeof values[parsekey] !== 'undefined') {
-									value = this.read(this.binary[index], values[parsekey]);
+									value = extract(index, values[parsekey]);
 								}
 
 								jsontree[depth].push(value);
 								break;
 						}
+						break;
 				}
 
-				DEBUG.parse("parse", this.binary[index], "=", value);
+				DEBUG.parse("parse", raw[index], "=", value);
 				DEBUG.parse("->", depth, jsontree);
 			}
 
 			DEBUG.parse("-->", depth, jsontree);
-			this.data = jsontree[0];
+			result = jsontree[0];
+			return true;
 		};
 
-		message.prototype.read = function(index, dictionary) {
-			switch (index) {
+		function extract(index, dictionary) {
+			var code = raw[index];
+
+			switch (code) {
 				case JSON_OPEN:
 					return 'JSON_OPEN';
 				case ARRAY_OPEN:
@@ -361,15 +309,15 @@ define(
 
 			// No lookup table, therefore return the raw number.
 			if (typeof dictionary === 'undefined') {
-				DEBUG.parse("Returning raw.", index);
-				return index;
+				DEBUG.parse("Returning raw.", code);
+				return code;
 			}
 
-			var result = dictionary[index];
+			var result = dictionary[code];
 			if (typeof result === 'undefined') {
-				DEBUG.error("Unrecognized value on decode:", index, "Searched: [" + dictionary + "]");
+				DEBUG.error("Unrecognized value on decode:", code, "Searched: [" + dictionary + "]");
 			} else {
-				DEBUG.parse("Returning", index, "=", result);
+				DEBUG.parse("Returning", code, "=", result);
 				return result;
 			}
 		};

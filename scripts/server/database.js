@@ -1,20 +1,13 @@
 
 define(
-	['redis', 'url', 'deasync', 'shared/message', 'shared/util'],
-	function(REDIS, URL, DEASYNC, MESSAGE, UTIL) {
+	['redis', 'url', 'deasync', 'shared/cypher', 'shared/util'],
+	function(REDIS, URL, DEASYNC, CYPHER, UTIL) {
 		var url = URL.parse(process.env.REDISCLOUD_URL || 'redis://user:@localhost:6379');
 		var client = REDIS.createClient(url.port, url.hostname, {
 			no_ready_check: true,
 		});
-
-		var listener = REDIS.createClient(url.port, url.hostname, {
-			no_ready_check: true,
-			return_buffers: true,
-		});
-
 		//REDIS.debug_mode = true;
 		client.auth(url.auth.split(":")[1]);
-		listener.auth(url.auth.split(":")[1]);
 
 		// TODO: Remove this testing code.
 		client.flushdb();
@@ -26,6 +19,7 @@ define(
 		}
 
 		db_string.prototype.get = function() {
+			DEBUG.database("Getting", this.key);
 			var value = DEASYNC(function(key, callback) {
 				client.get(key, callback);
 			})(this.key);
@@ -34,6 +28,7 @@ define(
 		}
 
 		db_string.prototype.set = function(value) {
+			DEBUG.database("Setting", this.key);
 			if (value != this.def && value !== null) {
 				client.set(this.key, value);
 			} else {
@@ -50,10 +45,12 @@ define(
 		db_integer.prototype = Object.create(db_string.prototype);
 
 		db_integer.prototype.get = function() {
+			DEBUG.database("get", this.key, arguments);
 			return parseInt( db_string.prototype.get.call(this) );
 		}
 
 		db_integer.prototype.modify = function(modification) {
+			DEBUG.database("modify", this.key, arguments);
 			client.incrby(this.key, modification);
 		}
 
@@ -68,6 +65,7 @@ define(
 		// In our storage method for booleans, 0 means default, 1 means not default.
 
 		db_bool.prototype.get = function() {
+			DEBUG.database("get", this.key, arguments);
 			var value = DEASYNC(function(key, offset, callback) {
 				client.getbit(key, offset, callback);
 			})(this.key, this.offset);
@@ -76,6 +74,7 @@ define(
 		}
 
 		db_bool.prototype.set = function(value) {
+			DEBUG.database("set", this.key, arguments);
 			client.setbit(this.key, this.offset, value != this.def && value !== null ? 1 : 0);
 		}
 
@@ -86,6 +85,7 @@ define(
 		}
 
 		db_hash.prototype.get = function(argument) {
+			DEBUG.database("get", this.key, arguments);
 			var result = null;
 
 			if (typeof argument === 'undefined') {
@@ -107,6 +107,7 @@ define(
 		}
 
 		db_hash.prototype.set = function(arg1, arg2) {
+			DEBUG.database("set", this.key, arguments);
 			var arguments;
 
 			if (arg1 === null) {
@@ -139,6 +140,7 @@ define(
 		}
 
 		db_hash.prototype.clear = function(argument) {
+			DEBUG.database("clear", this.key, arguments);
 			if (typeof argument === 'undefined') {
 				client.del(this.key);
 			} else {
@@ -147,6 +149,7 @@ define(
 		}
 
 		db_hash.prototype.get_list = function(entry) {
+			DEBUG.database("get-list", this.key, arguments);
 			if (typeof entry !== 'undefined') {
 				result = DEASYNC(function(key, entry, callback) {
 					client.hget(key, entry, callback);
@@ -169,6 +172,7 @@ define(
 		};
 
 		db_hash.prototype.set_list = function(entry, array) {
+			DEBUG.database("set-list", this.key, arguments);
 			if (entry === null) {
 				client.del(this.key);
 			} else if (array === null) {
@@ -185,6 +189,7 @@ define(
 		}
 
 		db_set.prototype.get = function() {
+			DEBUG.database("get", this.key, arguments);
 			var result = DEASYNC(function(key, callback) {
 				client.smembers(key, callback);
 			})(this.key);
@@ -193,14 +198,17 @@ define(
 		}
 
 		db_set.prototype.add = function(value) {
+			DEBUG.database("add", this.key, arguments);
 			client.sadd(this.key, value);
 		}
 
 		db_set.prototype.remove = function(value) {
+			DEBUG.database("remove", this.key, arguments);
 			client.srem(this.key, value);
 		}
 
 		db_set.prototype.clear = function() {
+			DEBUG.database("clear", this.key, arguments);
 			client.del(this.key);
 		}
 
@@ -214,6 +222,7 @@ define(
 		// In our storage method for booleans, 0 means default, 1 means not default.
 
 		db_bitlist.prototype.get = function(offset) {
+			DEBUG.database("get", this.key, arguments);
 			var value = DEASYNC(function(key, offset, callback) {
 				client.getbit(key, offset, callback);
 			})(this.key, offset);
@@ -222,6 +231,7 @@ define(
 		}
 
 		db_bitlist.prototype.set = function(offset, value) {
+			DEBUG.database("set", this.key, arguments);
 			client.setbit(this.key, offset, value != this.def && value !== null ? 1 : 0);
 		}
 
@@ -232,6 +242,7 @@ define(
 		}
 
 		db_list.prototype.get = function(index) {
+			DEBUG.database("get", this.key, arguments);
 			var result;
 
 			if (typeof index === 'undefined') {
@@ -250,54 +261,37 @@ define(
 		}
 
 		db_list.prototype.set = function(index, value) {
+			DEBUG.database("set", this.key, arguments);
 			client.lset(this.key, index, value);
 		}
 
 		db_list.prototype.pop = function() {
+			DEBUG.database("pop", this.key, arguments);
 			return DEASYNC(function(key, callback) {
 				client.lpop(key, callback);
 			})(this.key);
 		}
 
 		db_list.prototype.push = function(value) {
+			DEBUG.database("push", this.key, arguments);
 			client.rpush(this.key, value);
 		}
 
 		db_list.prototype.length = function() {
+			DEBUG.database("length", this.key, arguments);
 			return DEASYNC(function(key, callback) {
 				client.llen(key, callback);
 			})(this.key);
 		}
 
 		db_list.prototype.clear = function() {
+			DEBUG.database("clear", this.key, arguments);
 			client.del(this.key);
 		}
 
-
-		// =================== PUB / SUB Communication =================== //
-		listener.on('message', function(channel, message) {
-			message = JSON.parse(message);
-			message.data = Object.keys(message.data).map(function(k) {
-				return message.data[k];
-			});
-			message.data = new Int8Array(message.data);
-
-			var msg = MESSAGE.decode(message.data);
-			DEBUG.database("Received", msg.type, message.meta, msg.data);
-
-			HOOKS.trigger('dispatch:'+msg.type, null, {
-				source: 'channel',
-				channel: channel,
-				meta: message.meta,
-				data: msg.data,
-			});
-		});
-		
-
 		return {
-			LOBBY_CHANNEL: 0,
-
 			select: function(database_index) {
+				DEBUG.database("Selecting DB", '#'+database_index);
 				client.select(database_index);
 			},
 
@@ -334,18 +328,9 @@ define(
 				return new db_list(object, attribute);
 			},
 
-			// ============== PUB/SUB MODEL ============== //
-			subscribe: function(channel) {
-				listener.subscribe(channel);
-			},
-
-			unsubscribe: function(channel) {
-				listener.unsubscribe(channel);
-			},
-
-			publish: function(channel, data) {
-				DEBUG.database("Publishing", data, "to channel", channel)
-				client.publish(channel, data);
+			// ============== PUB/SUB ============== //
+			publish: function(channel_id, data) {
+				client.publish(channel_id, JSON.stringify(data));
 			},
 		};
 	}

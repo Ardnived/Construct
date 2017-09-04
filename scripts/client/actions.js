@@ -1,7 +1,7 @@
 
 requirejs(
-	['external/jquery', 'shared/message', 'shared/actions/all', 'shared/util'],
-	function(JQUERY, MESSAGE, ACTIONS, UTIL) {
+	['external/jquery', 'shared/cypher', 'shared/dispatch', 'shared/actions/all', 'shared/util', 'external/nprogress'],
+	function(JQUERY, CYPHER, DISPATCH, ACTIONS, UTIL, NPROGRESS) {
 		var self = {
 			waiting: false,
 			current_action: null,
@@ -93,8 +93,32 @@ requirejs(
 				self.acting_unit = GAME_STATE.meta.local_player.unit(args.data.unit_id);
 			}
 
-			DEBUG.flow("Queueing up an action", args.data);
-			MESSAGE.send('action', args.data);
+			DISPATCH({
+				type: 'action',
+				binary: args.data,
+			}).callback(function(response) {
+				switch (response.message.substring(0, 1)) {
+					case "3": // Success
+						if ('number' in response) {
+							GAME_STATE.meta.local_player.action_points = response.number;
+						}
+
+						if (self.acting_unit != null) {
+							self.acting_unit.last_action = GAME_STATE.meta.round;
+						}
+
+						clear_execution();
+						break;
+					case "4": // Failure
+						DEBUG.error("Rejected: "+response.message+' - '+CYPHER.text[response.message]);
+						clear_execution();
+						break;
+					default:
+						DEBUG.dispatch("Received: "+response.message+' - '+CYPHER.text[response.message]);
+				}
+				NPROGRESS.done();
+			}).to(GAME_STATE.id);
+			NPROGRESS.start();
 
 			// TODO: Wait for confirmation from the server.
 			if ('player_id' in args.data) {
@@ -203,6 +227,7 @@ requirejs(
 			}
 		}, HOOKS.ORDER_AFTER);
 
+		/*
 		HOOKS.on('dispatch:confirm', function(args) {
 			GAME_STATE.player(args.data.player_id).action_points = args.data.number;
 
@@ -217,8 +242,10 @@ requirejs(
 		}, HOOKS.ORDER_EXECUTE);
 
 		HOOKS.on('dispatch:rejected', function(args) {
-			DEBUG.error("Rejected: "+args.data.message+' - '+MESSAGE.text[args.data.message]);
+			// TODO: Replace this with the transaction response method
+			DEBUG.error("Rejected: "+args.data.message+' - '+CYPHER.text[args.data.message]);
 			clear_execution();
 		}, HOOKS.ORDER_EXECUTE);
+		*/
 	}
 );

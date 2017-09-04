@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'shared/actions/all', 'client/ui/graphic', 'client/ui/text', 'client/canvas'],
-	function(MESSAGE, ACTIONS, GRAPHIC, TEXT, CANVAS) {
+	['shared/actions/all', 'client/ui/graphic', 'client/ui/text', 'client/canvas'],
+	function(ACTIONS, GRAPHIC, TEXT, CANVAS) {
 		var root = {};
 
 		var self = {

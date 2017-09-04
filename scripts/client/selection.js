@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'shared/actions/all', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
-	function(MESSAGE, ACTION_LIST, GRAPHIC, BUTTON, TEXT, CANVAS) {
+	['shared/actions/all', 'client/ui/graphic', 'client/ui/button', 'client/ui/text', 'client/canvas'],
+	function(ACTION_LIST, GRAPHIC, BUTTON, TEXT, CANVAS) {
 		var self = {
 			selected_hex: null,
 			graphic: new GRAPHIC(CANVAS.image.cursor, {

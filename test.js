@@ -20,7 +20,8 @@ console.log("Node Version:", process.version);
 console.log("Platform:", CONFIG.platform);
 
 var ASSERT = requirejs('assert')
-var MESSAGE = requirejs('shared/message')
+var CYPHER = requirejs('shared/cypher')
+var DISPATCH = requirejs('shared/dispatch')
 var DATABASE = requirejs(CONFIG.platform+'/database')
 
 var object = { key: 'test' };
@@ -28,16 +29,22 @@ var object = { key: 'test' };
 describe("Dispatch", function() {
 	describe("Encoding", function() {
 		function test_encoding(data) {
-			var encoded = MESSAGE.encode('chat', data);
-			var decoded = MESSAGE.decode(encoded.binary);
+			var encoded = CYPHER.encode('lobby', 0, data);
+			var decoded = CYPHER.decode(encoded.binary);
 			ASSERT.deepEqual( data, decoded.data );
 		}
 
-		it("should encode data properly", function() {
+		it("should encode null objects", function() {
+			test_encoding(null);
+		})
+
+		it("should encode empty objects", function() {
 			test_encoding([]);
 			test_encoding({});
 			test_encoding([{}]);
+		})
 
+		it("should encode data properly", function() {
 			test_encoding([{
 				type: 'hex',
 				position: [2, 4],
@@ -68,10 +75,60 @@ describe("Dispatch", function() {
 				type: 'hex',
 				edges: ['northeast', 'southwest', 'south'],
 			}]);
+
+			test_encoding({
+				type: 'hex',
+				player_id: 0,
+				position: [6, 3],
+			});
 		})
 	})
 
-	describe("Inter-Server Communication", function() {
+	describe("Communication", function() {
+		it("should handle a lack of data", function(done) {
+			HOOKS.on('dispatch:default', function(data) {
+				DEBUG.temp('test');
+				ASSERT.deepEqual(data, {
+					channel_id: CYPHER.LOBBY_ID,
+				});
+
+				done();
+			});
+
+			DISPATCH({
+				type: 'default',
+			}).from(CYPHER.LOBBY_ID)
+		})
+
+		it("should merge encoded and json data while giving priority to encoded data", function(done) {
+			HOOKS.on('dispatch:lobby', function(data) {
+				ASSERT.deepEqual(data, {
+					channel_id: CYPHER.LOBBY_ID,
+					type: 'unit',
+					unit_id: 0,
+					size: 1,
+					text: "Testing it out.",
+				});
+
+				done();
+			});
+
+			DISPATCH({
+				type: 'lobby',
+				binary: {
+					type: 'unit',
+					size: 1,
+					unit_id: 0,
+				},
+				json: {
+					size: 3,
+					text: "Testing it out.",
+				},
+			}).from(CYPHER.LOBBY_ID)
+		})
+	})
+
+	/*describe("Inter-Server Communication", function() {
 		if ( CONFIG.platform !== 'server' ) {
 			return;
 		}
@@ -99,9 +156,9 @@ describe("Dispatch", function() {
 			});
 
 			DATABASE.subscribe("test");
-			MESSAGE.relay("test", 'chat', data, meta);
+			DISPATCH.relay("test", 'chat', data, meta);
 		})
-	})
+	})*/
 })
 
 describe("Database", function() {

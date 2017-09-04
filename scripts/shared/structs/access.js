@@ -1,7 +1,7 @@
 
 requirejs(
-	['shared/message', 'shared/round', 'shared/util'],
-	function(MESSAGE, ROUND, UTIL) {
+	['shared/round', 'shared/util'],
+	function(ROUND, UTIL) {
 		HOOKS.on('hex:sync', function(new_round) {
 			if (new_round % ROUND.DURATION_LONG === 0 && this.type != null && this.type.key === 'access') {
 				if (this.owner != null) {

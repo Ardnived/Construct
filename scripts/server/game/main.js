@@ -1,8 +1,8 @@
 
 define(
-	['server/lobby/main',
+	[CONFIG.platform+'/database', 'shared/dispatch',
 	 './state_handler', './victory_handler', './sync_handler'],
-	function(DATABASE) {
+	function(DATABASE, DISPATCH) {
 		HOOKS.on('dispatch:action', function(args) {
 			if (typeof args.data.action === 'undefined') {
 				DEBUG.fatal("Tried to execute a non-action update", args);
@@ -23,17 +23,21 @@ define(
 
 			if (player == null) {
 				DEBUG.error("Non-existant player", player.id, "tried to act.");
-				MESSAGE.send('rejected', {
-					message: "500",
-				}, player.client);
+				this.respond({
+					binary: {
+						message: "500",
+					},
+				);
 				return;
 			}
 
 			if (player.active == false) {
 				DEBUG.error("Player", player.id, "tried to act when it was not their turn.");
-				MESSAGE.send('rejected', {
-					message: "400",
-				}, player.client);
+				this.respond({
+					binary: {
+						message: "400",
+					},
+				);
 				return;
 			}
 
@@ -41,6 +45,14 @@ define(
 				state: state,
 				data: args.data,
 			});
+
+			// TODO: Check that the action queueing succeeded before we respond.
+			this.respond({
+				binary: {
+					message: "300",
+					number: player.action_points,
+				},
+			);
 		});
 	}
 );

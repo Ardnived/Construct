@@ -1,7 +1,7 @@
 
 define(
-	['shared/message', 'external/binary'],
-	function(MESSAGE) {
+	['shared/cypher', 'shared/util', 'external/binary'],
+	function(CYPHER, UTIL) {
 		var socket = null;
 
 		function on_open(event) {
@@ -30,9 +30,8 @@ define(
 				var reader = new FileReader();
 				reader.addEventListener("loadend", function() {
 					var binary = new Int8Array(reader.result);
-					var msg = MESSAGE.decode(binary);
+					var msg = CYPHER.decode(binary);
 					
-					DEBUG.flow('doing dispatch:'+msg.type, msg.data);
 					HOOKS.trigger('dispatch:'+msg.type, null, {
 						meta: meta,
 						data: msg.data,
@@ -42,13 +41,9 @@ define(
 				reader.readAsArrayBuffer(blob);
 			});
 		};
-
-		setInterval(function() {
-			MESSAGE.send('keep-alive', []);
-		}, 45000); // Send a keep alive message every 45 seconds.
-
+		
 		return {
-			init: function(port) {
+			start: function(port) {
 				DEBUG.dispatch("Connecting to server on port", port, "...");
 				socket = new BinaryClient("ws://"+location.hostname+":"+port+"/");
 				socket.on('stream', on_message);
@@ -57,11 +52,10 @@ define(
 				socket.on('close', on_close);
 			},
 			
-			send: function(binary, length) {
+			send: function(channel_id, binary, length, json) {
 				DEBUG.dispatch("Sending data", binary, "with length", length);
-				socket.send(binary, {
-					size: length,
-				});
+				json.size = length;
+				socket.send(binary, json);
 			},
 		};
 	}

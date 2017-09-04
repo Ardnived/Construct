@@ -1,7 +1,7 @@
 
 define(
-	['shared/util', 'server/database', 'shared/actions/all', 'shared/message', 'shared/state/team'],
-	function(UTIL, DATABASE, ACTIONS, MESSAGE, TEAM) {
+	['shared/util', 'server/database', 'shared/actions/all', 'shared/dispatch', 'shared/state/team'],
+	function(UTIL, DATABASE, ACTIONS, DISPATCH, TEAM) {
 
 		HOOKS.on('meta:new', function() {
 			//this._synced_clients = DATABASE.integer(this, 'synced_client_count');
@@ -103,11 +103,6 @@ define(
 					data.position = [unit.position.q, unit.position.r];
 				}
 			}
-
-			MESSAGE.send('confirm', {
-				player_id: data.player_id,
-				number: player.action_points,
-			});
 		}, HOOKS.ORDER_EXECUTE);
 
 		HOOKS.on('state:sync', function() {
@@ -162,7 +157,10 @@ define(
 					updates.push(state.meta.dequeue_update(key, player));
 				}
 
-				MESSAGE.send('sync', updates, player.client);
+				DISPATCH({
+					type: 'sync',
+					binary: updates,
+				}).to(player.client);
 			};
 		}
 

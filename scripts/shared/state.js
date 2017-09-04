@@ -1,7 +1,72 @@
 
+requirejs(
+	['shared/dispatch'],
+	function(DISPATCH) {
+		HOOKS.on('state:sync', function() {
+			var active_player_count = 0;
+
+			var hexes = this.hexes();
+			for (var k in hexes) {
+				HOOKS.trigger('hex:sync', hexes[k], this.meta.round);
+			}
+
+			for (var i = this.meta.player_count - 1; i >= 0; i--) {
+				var player = this.player(i);
+
+				if (player.playing) {
+					player.active = true;
+					active_player_count++;
+					HOOKS.trigger('player:sync', player, this.meta.round);
+				}
+			}
+
+			var teams = this.teams()
+			for (var k in teams) {
+				HOOKS.trigger('team:sync', teams[k], this.meta.round);
+			}
+
+			HOOKS.trigger('meta:sync', this.meta, this.meta.round);
+
+			if (active_player_count <= 1 && CONFIG.platform === 'server') {
+				// If there's only one player left, that means they've won.
+				// TODO: Implement victory.
+				for (var i = this.meta.player_count - 1; i >= 0; i--) {
+					var player = this.player(i);
+
+					if (player.playing) {
+						DISPATCH({
+							type: 'gameover',
+							binary: {
+								message: "200", // Victory
+							},
+						}).to(player.client);
+					} else {
+						DISPATCH({
+							type: 'gameover',
+							binary: {
+								message: "100", // Defeat
+							},
+						}).to(player.client);
+					}
+				}
+				
+				DEBUG.flow('========= GAME OVER =========');
+			}
+		}, HOOKS.ORDER_EXECUTE);
+
+		HOOKS.on('state:sync', function() {
+			DEBUG.flow('--------- PROCESSING TURN ---------');
+		}, HOOKS.ORDER_FIRST * 2);
+
+		HOOKS.on('state:sync', function() {
+			DEBUG.flow('--------- SYNCED ---------');
+		}, HOOKS.ORDER_LAST * 2);
+	}
+);
+
 define(
-	['shared/state/player', 'shared/state/team', 'shared/state/hex', 'shared/state/edge', 'shared/state/meta', 'shared/directions', 'shared/message', 'shared/round'],
-	function(PLAYER, TEAM, HEX, EDGE, META, DIRECTIONS, MESSAGE) {
+	['shared/state/player', 'shared/state/team', 'shared/state/hex', 'shared/state/edge', 'shared/state/meta', 'shared/directions', CONFIG.platform+'/database', 'shared/round', 'shared/cypher'],
+	function(PLAYER, TEAM, HEX, EDGE, META, DIRECTIONS, DATABASE, CYPHER) {
 		function state(id) {
 			this.id = id;
 			this._next_player_index = 0;
@@ -9,10 +74,13 @@ define(
 			this._edge_list = {};
 			this._hex_list = {};
 			this._team_list = {};
+			this.users = DATABASE.list(this, 'users');
 			this.meta = META.create(this);
 		}
 
 		state.prototype = {
+			key: 'state',
+
 			hex: function(q, r) {
 				var key;
 				
@@ -282,60 +350,26 @@ define(
 			max_r: function(q) { return (CONFIG.board.height + ((q + 1) % 2)) - Math.floor(q / 2); },
 		};
 
-		HOOKS.on('state:sync', function() {
-			var active_player_count = 0;
+		var active_games, state_list = {};
 
-			var hexes = this.hexes();
-			for (var k in hexes) {
-				HOOKS.trigger('hex:sync', hexes[k], this.meta.round);
-			}
+		var root = {
+			key: 'games',
 
-			for (var i = this.meta.player_count - 1; i >= 0; i--) {
-				var player = this.player(i);
+			exists: function(id) {
+				return active_games.get(index);
+			},
 
-				if (player.playing) {
-					player.active = true;
-					active_player_count++;
-					HOOKS.trigger('player:sync', player, this.meta.round);
+			get: function(id) {
+				if (typeof state_list[id] === 'undefined') {
+					state_list[id] = HOOKS.trigger('state:new', new state(id));
 				}
-			}
 
-			var teams = this.teams()
-			for (var k in teams) {
-				HOOKS.trigger('team:sync', teams[k], this.meta.round);
-			}
+				return state_list[id];
+			},
+		};
 
-			HOOKS.trigger('meta:sync', this.meta, this.meta.round);
+		active_games = DATABASE.bitlist(root, 'active');
 
-			if (active_player_count <= 1 && CONFIG.platform === 'server') {
-				// If there's only one player left, that means they've won.
-				// TODO: Implement victory.
-				for (var i = this.meta.player_count - 1; i >= 0; i--) {
-					var player = this.player(i);
-
-					if (player.playing) {
-						MESSAGE.send('gameover', {
-							message: "200", // Victory
-						}, player.client);
-					} else {
-						MESSAGE.send('gameover', {
-							message: "100", // Defeat
-						}, player.client);
-					}
-				}
-				
-				DEBUG.flow('========= GAME OVER =========');
-			}
-		}, HOOKS.ORDER_EXECUTE);
-
-		HOOKS.on('state:sync', function() {
-			DEBUG.flow('--------- PROCESSING TURN ---------');
-		}, HOOKS.ORDER_FIRST * 2);
-
-		HOOKS.on('state:sync', function() {
-			DEBUG.flow('--------- SYNCED ---------');
-		}, HOOKS.ORDER_LAST * 2);
-
-		return state;
+		return root;
 	}
 );

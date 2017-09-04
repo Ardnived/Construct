@@ -7,7 +7,6 @@
     "colors": "~1.0.3",
     "deasync": "0.0.10",
     "hiredis": "~0.3.0",
-    "node-uuid": "~1.4.1",
     "priorityqueuejs": "~0.2.0",
     "redis": "~0.12.1",
     "requirejs": "~2.1.15"

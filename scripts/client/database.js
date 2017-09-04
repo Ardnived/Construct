@@ -256,9 +256,8 @@ define(
 
 
 		return {
-			LOBBY_CHANNEL: 0,
-
 			select: function(database_index) {
+				DEBUG.database("Selecting DB", '#'+database_index);
 				if (!(database_index in databases)) {
 					databases[database_index] = {};
 				}

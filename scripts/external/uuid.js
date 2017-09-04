@@ -11,23 +11,26 @@
   // returns 128-bits of randomness, since that's what's usually required
   var _rng;
 
+  // Allow for MSIE11 msCrypto
+  var _crypto = _global.crypto || _global.msCrypto;
+
   // Node.js crypto-based RNG - http://nodejs.org/docs/v0.6.2/api/crypto.html
   //
   // Moderately fast, high quality
-  if (typeof(require) == 'function') {
+  if (typeof(_global.require) == 'function') {
     try {
-      var _rb = require('crypto').randomBytes;
+      var _rb = _global.require('crypto').randomBytes;
       _rng = _rb && function() {return _rb(16);};
     } catch(e) {}
   }
 
-  if (!_rng && _global.crypto && crypto.getRandomValues) {
+  if (!_rng && _crypto && _crypto.getRandomValues) {
     // WHATWG crypto-based RNG - http://wiki.whatwg.org/wiki/Crypto
     //
     // Moderately fast, high quality
     var _rnds8 = new Uint8Array(16);
     _rng = function whatwgRNG() {
-      crypto.getRandomValues(_rnds8);
+      _crypto.getRandomValues(_rnds8);
       return _rnds8;
     };
   }
@@ -49,7 +52,7 @@
   }
 
   // Buffer class to use
-  var BufferClass = typeof(Buffer) == 'function' ? Buffer : Array;
+  var BufferClass = typeof(_global.Buffer) == 'function' ? _global.Buffer : Array;
 
   // Maps for number <-> hex string conversion
   var _byteToHex = [];
@@ -224,12 +227,14 @@
   uuid.unparse = unparse;
   uuid.BufferClass = BufferClass;
 
-  if (typeof define === 'function' && define.amd) {
-    // Publish as AMD module
-    define(function() {return uuid;});
-  } else if (typeof(module) != 'undefined' && module.exports) {
+  if (typeof(module) != 'undefined' && module.exports) {
     // Publish as node.js module
     module.exports = uuid;
+  } else  if (typeof define === 'function' && define.amd) {
+    // Publish as AMD module
+    define(function() {return uuid;});
+ 
+
   } else {
     // Publish as global (in browsers)
     var _previousRoot = _global.uuid;

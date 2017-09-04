@@ -1,66 +1,62 @@
 
 requirejs(
-	['shared/message', 'server/database', 'node-uuid'],
-	function(MESSAGE, DATABASE, UUID) {
-		DATABASE.subscribe(DATABASE.LOBBY_CHANNEL);
-
+	['shared/cypher', 'server/database', 'shared/dispatch', 'external/uuid'],
+	function(CYPHER, DATABASE, DISPATCH, UUID) {
 		var object = { key: 'lobby' };
 
 		var root = {
 			database: {
 				users: DATABASE.hash(object, 'users'),
 				players: DATABASE.set(object, 'players'),
-				active_games: DATABASE.bitlist(object, 'games'),
+				//active_games: DATABASE.bitlist(object, 'games'),
 			},
-			_local: {
+			/*_local: {
 				game_states: {},
 				clients: {},
-			},
+			},*/
 
-			client: function(user_id) {
+			/*client: function(user_id) {
 				return this._local.clients[user_id];
-			},
+			},*/
 
-			game: function(game_index) {
+			/*game: function(game_index) {
 				if (typeof game_state_list[game_index] === 'undefined') {
 					game_state_list[game_index] = HOOKS.trigger('state:new', new STATE(game_id));
 				}
 
-				return game_state_list[game_index];
+				var game_state = game_state_list[game_index];
+
+				return game_state;
 			},
 
 			game_exists: function(game_index) {
-				return game_usage.get(index);
-			},
+				return this.active_games.get(index);
+			},*/
 		};
 
 		HOOKS.on('dispatch:connection', function(client) {
 			DEBUG.game("Received connection with socket id", client.id);
 			
-			DATABASE.select(DATABASE.LOBBY_CHANNEL);
+			DATABASE.select(CYPHER.LOBBY_ID);
 
-			// TODO: Use authentication data to get user id from 
+			// TODO: Use authentication data to get user id from database.
 
 			var user_id = UUID.v4();
 			root.database.players.add(user_id);
 
 			client.user_id = user_id;
-			root._local.clients[user_id] = client;
+			//root._local.clients[user_id] = client;
 
-			MESSAGE.relay(DATABASE.LOBBY_CHANNEL, 'lobby', [], {
-				name: "Anonymous",
-				user_id: user_id,
-			});
+			DISPATCH({
+				type: 'lobby',
+				json: {
+					name: "Anonymous",
+					user_id: user_id,
+				},
+			}).to(CYPHER.LOBBY_ID);
 
 			// TODO: Relay the new player to the other dynos.
-		});
-
-		HOOKS.on('dispatch:lobby', function( event ) {
-			if (event.source === 'client') {
-				MESSAGE.relay(args.channel, 'lobby', args.data, args.meta);
-			} else {
-				MESSAGE.send('lobby', args.data, null, args.meta);
-			}
+			DEBUG.flow("LOBBY.dispatch:connection: finished setting up new client")
 		});
 
 		return root;

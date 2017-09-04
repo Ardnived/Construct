@@ -24,12 +24,11 @@ DEBUG = {
 		console.log.apply(console, params);
 	},
 
-	dispatch: function() {
-		var params = [":dispatch -"];
+	lobby: function() {
+		var params = [":lobby    -"];
 		Array.prototype.push.apply(params, arguments);
 		console.log.apply(console, params);
 	},
-
 	parse: function() {
 		return;
 		var params = [":parse    -"];
@@ -44,21 +43,24 @@ DEBUG = {
 	},
 
 	flow: function() {
+		return;
 		var params = [":flow     -"];
 		Array.prototype.push.apply(params, arguments);
 		console.log.apply(console, params);
 	},
 
-	chat: function() {
-		var params = [":chat     -"];
-		Array.prototype.push.apply(params, arguments);
-		console.log.apply(console, params);
-	},
-
 	database: function() {
+		//return;
 		var params = [":database -"];
 		Array.prototype.push.apply(params, arguments);
 		console.log.apply(console, params);
 	},
+
+	dispatch: function() {
+		var params = [":dispatch -"];
+		Array.prototype.push.apply(params, arguments);
+		console.log.apply(console, params);
+	},
+
 
 }

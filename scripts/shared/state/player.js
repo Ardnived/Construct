@@ -19,6 +19,7 @@ define(
 		var player = function(parent_state, index) {
 			this.parent_state = parent_state;
 			this.id = index;
+			this.name = "Anonymous";
 			this.team = this.parent_state.team(index); // TODO: Implement teams
 			this.playing = true; // Indicates whether this player is still playing. False indicates that they have lost.
 			this._action_points = CONFIG.actions_per_turn;
